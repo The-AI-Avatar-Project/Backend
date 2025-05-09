@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: postgres
+      POSTGRES_DB: aiAvatar
+  adminer:
+    image: adminer:latest
+    ports:
+      - 8081:8080
+  whisper:
+    build:
+      context: ./models/whisper
+    volumes:
+      - ./models/whisper/model:/models
+    ports:
+      - 8082:8080
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+  googletts:
+    build:
+      context: ./models/google
+    ports:
+      - 8083:8080
+  openai:
+    build:
+      context: models/openai
+    ports:
+      - 8084:8080
+    env_file: "models/openai/.env"
