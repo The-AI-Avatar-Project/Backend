@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:latest
+    image: pgvector/pgvector:pg17
     ports:
       - 5432:5432
     environment:
@@ -30,9 +30,3 @@ services:
       context: ./models/google
     ports:
       - 8083:8080
-  openai:
-    build:
-      context: models/openai
-    ports:
-      - 8084:8080
-    env_file: "models/openai/.env"
