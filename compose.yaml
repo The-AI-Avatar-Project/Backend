@@ -30,3 +30,8 @@ services:
       context: ./models/google
     ports:
       - 8083:8080
+  video:
+    build:
+      context: ./models/video
+    ports:
+      - 8085:8080
