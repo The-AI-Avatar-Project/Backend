@@ -1,8 +1,9 @@
 FROM python:3.9-slim
 
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir openai-whisper fastapi uvicorn python-multipart torch triton
+RUN apt-get update &&  \
+    apt-get install -y ffmpeg &&  \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir fastapi openai-whisper python-multipart torch triton uvicorn
 
 COPY entrypoint.py /
 

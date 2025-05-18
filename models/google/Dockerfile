@@ -1,6 +1,6 @@
 FROM python:3.9-slim
 
-RUN pip install --no-cache-dir fastapi uvicorn[standard] gTTS
+RUN pip install --no-cache-dir fastapi gTTS uvicorn[standard]
 
 COPY entrypoint.py /
 

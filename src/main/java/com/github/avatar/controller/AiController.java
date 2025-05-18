@@ -39,4 +39,13 @@ public class AiController {
 
         return pipelineService.processAudio(fileResource, id);
     }
+
+    @PostMapping(value = {"/upload/{id}", "/upload"})
+    public void uploadPdf(@RequestParam("file") MultipartFile file, @PathVariable(required = false) String id) {
+        if (id == null || id.isEmpty()) {
+            id = "0";
+        }
+
+        pipelineService.savePdf(file.getResource(), id);
+    }
 }
