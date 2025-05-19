@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import os
 import io
+import time
 from pydub import AudioSegment
 from pydub.utils import make_chunks
 from PIL import Image
@@ -26,8 +27,8 @@ class TTSRequest(BaseModel):
     text: str
 
 FRAME_RATE = 10 
-THRESHOLD_DBFS = -35 
-OUTPUT_VIDEO = "output_short.mp4"
+THRESHOLD_DBFS = -35
+SHARE_FOLDER = "/root/share/"
 
 def analyze_audio_chunks(audio, chunk_length_ms=100, threshold_dbfs=-35):
     chunks = make_chunks(audio, chunk_length_ms)
@@ -59,21 +60,16 @@ def create_video_from_images(image_sequence, audio_path, frame_rate, output_path
     threads=os.cpu_count(),                  
 )
 
+class VideoGenerationRequest(BaseModel):
+    file_name: str
+
 @app.post("/")
-def respond(file: UploadFile = File(...)):
-    file_path = f"/tmp/{file.filename}"
+def respond(request: VideoGenerationRequest):
 
-    # Save the uploaded file
-    with open(file_path, "wb") as buffer:
-        buffer.write(file.file.read())
-
-    audio = AudioSegment.from_file(file_path).set_channels(1)
+    audio = AudioSegment.from_file(SHARE_FOLDER + request.file_name).set_channels(1)
     activity = analyze_audio_chunks(audio, chunk_length_ms=1000 // FRAME_RATE, threshold_dbfs=THRESHOLD_DBFS)
     image_sequence = generate_image_sequence("mouth_open.png", "mouth_closed.png", activity)
-    create_video_from_images(image_sequence, file_path, FRAME_RATE, OUTPUT_VIDEO)
-    print(f"Video gespeichert unter: {OUTPUT_VIDEO}")
+    output_file =  str(time.time()) + ".mp4"
+    create_video_from_images(image_sequence, SHARE_FOLDER + request.file_name, FRAME_RATE, SHARE_FOLDER + output_file)
 
-    with open(OUTPUT_VIDEO, "rb") as f:
-        file_bytes = f.read()
-
-    return StreamingResponse(io.BytesIO(file_bytes), media_type="video/mp4")
+    return output_file

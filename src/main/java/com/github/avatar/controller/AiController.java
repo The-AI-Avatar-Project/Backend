@@ -1,6 +1,6 @@
 package com.github.avatar.controller;
 
-import com.github.avatar.dto.AudioVideoResponse;
+import com.github.avatar.dto.AvatarResponse;
 import com.github.avatar.service.PipelineService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ public class AiController {
     }
 
     @PostMapping(value = {"/text/{id}", "/text"})
-    public AudioVideoResponse requestLlmResponse(@RequestBody String request, @PathVariable(required = false) String id) {
+    public AvatarResponse requestLlmResponse(@RequestBody String request, @PathVariable(required = false) String id) {
         if (id == null || id.isEmpty()) {
             id = "0";
         }
@@ -26,7 +26,7 @@ public class AiController {
     }
 
     @PostMapping(value = {"/audio/{id}", "/audio"})
-    public AudioVideoResponse requestSttResponse(@RequestParam("file") MultipartFile file, @PathVariable(required = false) String id) throws IOException {
+    public AvatarResponse requestSttResponse(@RequestParam("file") MultipartFile file, @PathVariable(required = false) String id) throws IOException {
         if (id == null || id.isEmpty()) {
             id = "0";
         }

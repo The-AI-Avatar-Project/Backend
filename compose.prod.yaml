@@ -7,3 +7,8 @@ services:
       - db
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+    volumes:
+      - shared:/usr/src/myapp/share
+
+volumes:
+  shared:
