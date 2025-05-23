@@ -1,0 +1,5 @@
+- Der Client baut eine Websocket Verbindung zum Backend auf
+- Der Client macht eine Anfrage an das Backend beispielsweise http://localhost/text
+- Der Server beginnt den Videostream über http://localhost/text
+- Der Server sendet über den Websocket den Antworttext, den Anfragetext (nur bei Audioanfragen)
+- Im AiController muss ein Endpoint für websockets definiert werden. Jeder Websocket der von einem Client aus eröffnet wird, wird mit IP in eine Map eingetragen. Also Map<Ip, Websocket>. Im /text oder /audio endpoint kann dann nach generierung des Antworttextes dieser über den Websocket der Anfrage ip zurückgegeben werden.

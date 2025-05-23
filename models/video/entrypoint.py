@@ -9,9 +9,11 @@ from pydub import AudioSegment
 from pydub.utils import make_chunks
 from PIL import Image
 import numpy as np
-from moviepy.editor import ImageSequenceClip, AudioFileClip
 import os
 from concurrent.futures import ThreadPoolExecutor
+import subprocess
+from typing import Iterator
+import threading
 
 app = FastAPI()
 
@@ -29,6 +31,7 @@ class TTSRequest(BaseModel):
 FRAME_RATE = 10 
 THRESHOLD_DBFS = -35
 SHARE_FOLDER = "/root/share/"
+TMP_FOLDER = "/tmp/"
 
 def analyze_audio_chunks(audio, chunk_length_ms=100, threshold_dbfs=-35):
     chunks = make_chunks(audio, chunk_length_ms)
@@ -38,38 +41,66 @@ def analyze_audio_chunks(audio, chunk_length_ms=100, threshold_dbfs=-35):
         result.append(loud)
     return result
 
-def generate_image_sequence(image_open_path, image_closed_path, activity_flags):
+def image_sequence_generator(image_open_path, image_closed_path, activity_flags):
     img_open = np.array(Image.open(image_open_path))
     img_closed = np.array(Image.open(image_closed_path))
+    
+    for flag in activity_flags:
+        image = img_open if flag else img_closed
+        yield image
 
-    with ThreadPoolExecutor() as executor:
-        image_sequence = list(executor.map(lambda flag: img_open if flag else img_closed, activity_flags))
+def stream_video_generator(activity_flags, audio_path, image_open_path, image_closed_path):
+    # Start FFmpeg with stdin (pipe) for images and audio file
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-y",
+        "-f", "image2pipe",
+        "-r", str(FRAME_RATE),
+        "-i", "-",  # input from stdin
+        "-i", audio_path,
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-c:a", "aac",
+        "-f", "mp4",
+        "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+        "pipe:1"
+    ]
 
-    return image_sequence
+    process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-def create_video_from_images(image_sequence, audio_path, frame_rate, output_path):
-    audio = AudioFileClip(audio_path)
-    clip = ImageSequenceClip(image_sequence, fps=frame_rate)
-    clip = clip.set_audio(audio)
+    def feed_frames():
+        for image in image_sequence_generator(image_open_path, image_closed_path, activity_flags):
+            img_bytes = Image.fromarray(image).convert("RGB")
+            buffer = io.BytesIO()
+            img_bytes.save(buffer, format="JPEG")
+            process.stdin.write(buffer.getvalue())
+        process.stdin.close()
 
-    clip.write_videofile(
-    output_path,
-    codec="libx264",
-    audio_codec="aac",
-    preset="ultrafast",         
-    threads=os.cpu_count(),                  
-)
+    threading.Thread(target=feed_frames).start()
+
+    def generate_output():
+        while True:
+            chunk = process.stdout.read(1024)
+            if not chunk:
+                break
+            yield chunk
+
+    return generate_output()
 
 class VideoGenerationRequest(BaseModel):
     file_name: str
 
 @app.post("/")
 def respond(request: VideoGenerationRequest):
-
     audio = AudioSegment.from_file(SHARE_FOLDER + request.file_name).set_channels(1)
     activity = analyze_audio_chunks(audio, chunk_length_ms=1000 // FRAME_RATE, threshold_dbfs=THRESHOLD_DBFS)
-    image_sequence = generate_image_sequence("mouth_open.png", "mouth_closed.png", activity)
-    output_file =  str(time.time()) + ".mp4"
-    create_video_from_images(image_sequence, SHARE_FOLDER + request.file_name, FRAME_RATE, SHARE_FOLDER + output_file)
-
-    return output_file
+    return StreamingResponse(
+        stream_video_generator(
+            activity,
+            SHARE_FOLDER + request.file_name,
+            "mouth_open.png",
+            "mouth_closed.png"
+        ),
+        media_type="video/mp4",
+        headers={"Content-Disposition": f"attachment; filename={request.file_name}.mp4"},
+    )

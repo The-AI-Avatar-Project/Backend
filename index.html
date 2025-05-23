@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head></head>
+<body>
+    <video id="myVideo" style="width: 50em" controls autoplay muted></video>
+    <script>
+        const video = document.getElementById("myVideo");
+        const mediaSource = new MediaSource();
+        video.src = URL.createObjectURL(mediaSource);
+
+        mediaSource.addEventListener("sourceopen", async () => {
+            const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001E, mp4a.40.2"');
+
+            const response = await fetch("http://localhost:8085/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ file_name: "audio.mp3" })
+            });
+
+            const reader = response.body.getReader();
+
+            function readChunk() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        mediaSource.endOfStream();
+                        return;
+                    }
+                    sourceBuffer.appendBuffer(value);
+
+                    // Video starten, sobald der erste Chunk geladen wurde und der Buffer nicht mehr updated
+                    if (!sourceBuffer.updating) {
+                        video.play().catch(e => console.log("Autoplay failed:", e));
+                        readChunk();
+                    } else {
+                        sourceBuffer.addEventListener("updateend", () => {
+                            video.play().catch(e => console.log("Autoplay failed:", e));
+                            readChunk();
+                        }, { once: true });
+                    }
+                });
+            }
+
+            readChunk();
+        });
+    </script>
+</body>
+</html>

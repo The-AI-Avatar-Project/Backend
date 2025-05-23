@@ -35,8 +35,3 @@ services:
       context: ./models/video
     ports:
       - 8085:8080
-    volumes:
-      - shared:/root/share
-
-volumes:
-  shared:
