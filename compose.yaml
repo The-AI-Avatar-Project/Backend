@@ -7,6 +7,8 @@ services:
       POSTGRES_PASSWORD: example
       POSTGRES_USER: postgres
       POSTGRES_DB: aiAvatar
+    networks:
+      - keycloak-net
   adminer:
     image: adminer:latest
     ports:
@@ -49,6 +51,38 @@ services:
       - .env
     volumes:
       - shared:/usr/src/myapp/share
-
+  keycloak:
+    build:
+      context: ./keyCloak
+    container_name: keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/aiAvatar
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: example
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: secret
+      KC_IMPORT: all
+      KC_HOSTNAME_STRICT: "false"
+    ports:
+      - "8084:8080"
+    depends_on:
+      - db
+    networks:
+      - keycloak-net
+  keycloak-initservice:
+    build:
+      context: ./keyCloak/init
+    depends_on:
+      - keycloak
+    environment:
+      KEYCLOAK_URL: "http://keycloak:8080"  
+    entrypoint: ["python", "/app/setup-keycloak-realm.py"]
+    networks:
+      - keycloak-net
 volumes:
   shared:
+
+networks:
+  keycloak-net:
+    driver: bridge
