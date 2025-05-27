@@ -7,8 +7,6 @@ services:
       POSTGRES_PASSWORD: example
       POSTGRES_USER: postgres
       POSTGRES_DB: aiAvatar
-    networks:
-      - keycloak-net
   adminer:
     image: adminer:latest
     ports:
@@ -54,7 +52,6 @@ services:
   keycloak:
     build:
       context: ./keyCloak
-    container_name: keycloak
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://db:5432/aiAvatar
@@ -68,9 +65,7 @@ services:
       - "8084:8080"
     depends_on:
       - db
-    networks:
-      - keycloak-net
-  keycloak-initservice:
+  keycloak-init-service:
     build:
       context: ./keyCloak/init
     depends_on:
@@ -78,8 +73,6 @@ services:
     environment:
       KEYCLOAK_URL: "http://keycloak:8080"  
     entrypoint: ["python", "/app/setup-keycloak-realm.py"]
-    networks:
-      - keycloak-net
 volumes:
   shared:
 
