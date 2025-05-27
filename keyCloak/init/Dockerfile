@@ -8,6 +8,6 @@ COPY ai-avatar-realm.json /app/ai-avatar-realm.json
 COPY setup-keycloak-realm.py /app/setup-keycloak-realm.py
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir requests typing-extensions
 
 ENTRYPOINT ["python", "/app/setup-keycloak-realm.py"]
