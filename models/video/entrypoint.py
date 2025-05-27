@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi import Body
+from fastapi import Request
 from pydantic import BaseModel
 import os
 import io
@@ -91,16 +93,5 @@ class VideoGenerationRequest(BaseModel):
     file_name: str
 
 @app.post("/")
-def respond(request: VideoGenerationRequest):
-    audio = AudioSegment.from_file(SHARE_FOLDER + request.file_name).set_channels(1)
-    activity = analyze_audio_chunks(audio, chunk_length_ms=1000 // FRAME_RATE, threshold_dbfs=THRESHOLD_DBFS)
-    return StreamingResponse(
-        stream_video_generator(
-            activity,
-            SHARE_FOLDER + request.file_name,
-            "mouth_open.png",
-            "mouth_closed.png"
-        ),
-        media_type="video/mp4",
-        headers={"Content-Disposition": f"attachment; filename={request.file_name}.mp4"},
-    )
+async def respond(request: Request):
+    print("Hallo")

@@ -5,7 +5,9 @@ import com.github.avatar.dto.AvatarResponse;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.util.Optional;
 
 @Service
@@ -24,14 +26,14 @@ public class PipelineService {
         this.videoService = videoService;
     }
 
-    public AvatarResponse processText(String input, String id) {
+    public AvatarResponse processText(String input, String id) throws IOException {
         String textResponse = llmService.generateResponse(input, id);
         byte[] audioBytes = ttsService.processText(textResponse);
-        byte[] videoBytes = videoService.generateVideo(audioBytes);
-        return new AvatarResponse(textResponse, videoBytes, Optional.empty());
+        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes);
+        return new AvatarResponse(textResponse, videoBody, Optional.empty());
     }
 
-    public AvatarResponse processAudio(ByteArrayResource input, String id) {
+    public AvatarResponse processAudio(ByteArrayResource input, String id) throws IOException {
         String requestText = sttService.processAudio(input);
         AvatarResponse response = processText(requestText, id);
         return new AvatarResponse(response.responseText(), response.responseVideo(), Optional.of(requestText));
