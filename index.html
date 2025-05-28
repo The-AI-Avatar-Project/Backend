@@ -10,13 +10,18 @@
 
         mediaSource.addEventListener("sourceopen", async () => {
             const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001E, mp4a.40.2"');
+            const socket = new WebSocket("ws://localhost:8080/ws")
 
-            const response = await fetch("http://localhost:8085/", {
+            socket.addEventListener("message", (event) => {
+                console.log(event.data);
+            });
+
+            const response = await fetch("http://localhost:8080/ai/text/1", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "text/plain"
                 },
-                body: JSON.stringify({ file_name: "audio.mp3" })
+                body: "Was ist um 13 Uhr"
             });
 
             const reader = response.body.getReader();

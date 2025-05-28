@@ -1,11 +1,13 @@
 package com.github.avatar.service;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.avatar.Main;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -15,8 +17,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import org.springframework.core.io.buffer.DataBuffer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.HttpProtocol;
+import reactor.netty.http.client.HttpClient;
+
 import java.io.IOException;
 import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +38,13 @@ public class VideoService {
     private final WebClient webClient;
 
     public VideoService() {
-        this.webClient = WebClient.create();
+        // The video backend is built using Uvicorn.
+        // Uvicorn does not support http2 which WebClient uses by default.
+        HttpClient httpClient = HttpClient.create().protocol(HttpProtocol.HTTP11);
+
+        this.webClient = WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
     }
 
     private void saveAudio(byte[] audioBytes, String fileName) throws IOException{
@@ -44,7 +58,7 @@ public class VideoService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("file_name", audioName);
 
-        StreamingResponseBody body = outputStream -> {
+        return outputStream -> {
             webClient.post()
                     .uri(videoGenerationServerUrl)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -61,17 +75,14 @@ public class VideoService {
                         }
                     })
                     .doOnError(Throwable::printStackTrace)
-                    .blockLast(); // block until complete to keep the stream open
+                    .blockLast();
+            Files.delete(Paths.get("./share/" + audioName));
         };
-
-        return body;
     }
 
     public StreamingResponseBody generateVideo(byte[] audio) throws IOException {
         String filename = System.currentTimeMillis()+".mp3";
         saveAudio(audio, filename);
-        StreamingResponseBody videoBody = requestVideo(filename);
-        Files.delete(Paths.get("./share/" + filename));
-        return videoBody;
+        return requestVideo(filename);
     }
 }

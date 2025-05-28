@@ -11,6 +11,20 @@ services:
     image: adminer:latest
     ports:
       - 8081:8080
+  whisper:
+    build:
+      context: ./models/whisper
+    volumes:
+      - ./models/whisper/model:/models
+    ports:
+      - 8082:8080
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
   googletts:
     build:
       context: ./models/google
@@ -21,3 +35,8 @@ services:
       context: ./models/video
     ports:
       - 8085:8080
+    volumes:
+      - shared:/root/share
+
+volumes:
+  shared:
