@@ -1,9 +1,0 @@
-POST http://localhost:8085/
-Content-Type: multipart/form-data; boundary=----data 
-
-------data
-Content-Disposition: form-data; name="file"; filename="audio.mp3"
-Content-Type: audio/mpeg
-
-< ./audio.mp3
-------data

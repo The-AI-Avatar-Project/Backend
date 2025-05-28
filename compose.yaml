@@ -13,9 +13,9 @@ services:
       - 8081:8080
   whisper:
     build:
-      context: ./models/whisper
+      context: ./services/whisper
     volumes:
-      - ./models/whisper/model:/models
+      - ./services/whisper/model:/models
     ports:
       - 8082:8080
     deploy:
@@ -27,16 +27,28 @@ services:
               capabilities: [ gpu ]
   googletts:
     build:
-      context: ./models/google
+      context: ./services/google
     ports:
       - 8083:8080
   video:
     build:
-      context: ./models/video
+      context: ./services/video
     ports:
       - 8085:8080
     volumes:
       - shared:/root/share
+  backend:
+    build: .
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    env_file:
+      - .env
+    volumes:
+      - shared:/usr/src/myapp/share
 
 volumes:
   shared:
