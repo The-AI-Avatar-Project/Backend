@@ -75,7 +75,3 @@ services:
     entrypoint: ["python", "/app/setup-keycloak-realm.py"]
 volumes:
   shared:
-
-networks:
-  keycloak-net:
-    driver: bridge
