@@ -49,6 +49,32 @@ services:
       - .env
     volumes:
       - shared:/usr/src/myapp/share
-
+  keycloak:
+    image: keycloak/keycloak:26.2.0
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/aiAvatar
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: example
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: secret
+      KC_IMPORT: all
+      KC_HOSTNAME_STRICT: "false"
+    ports:
+      - "8084:8080"
+    depends_on:
+      - db
+    entrypoint:
+      - "/opt/keycloak/bin/kc.sh"
+      - "start"
+      - "--http-port=8080"
+      - "--http-enabled=true"
+  keycloak-init-service:
+    build:
+      context: ./keyCloak
+    depends_on:
+      - keycloak
+    environment:
+      KEYCLOAK_URL: "http://keycloak:8080"
 volumes:
   shared:
