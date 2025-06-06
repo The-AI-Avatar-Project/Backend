@@ -1,5 +1,8 @@
-FROM keycloak/keycloak:26.2.0
+FROM python:3.11-slim
 
-WORKDIR /opt/keycloak
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start", "--http-port=8080", "--http-enabled=true"]
+COPY ai-avatar-realm.json /app/ai-avatar-realm.json
+COPY setup-keycloak-realm.py /app/setup-keycloak-realm.py
 
+RUN pip install --no-cache-dir requests
+
+ENTRYPOINT ["python", "/app/setup-keycloak-realm.py"]

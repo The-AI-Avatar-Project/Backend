@@ -50,8 +50,7 @@ services:
     volumes:
       - shared:/usr/src/myapp/share
   keycloak:
-    build:
-      context: ./keyCloak
+    image: keycloak/keycloak:26.2.0
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://db:5432/aiAvatar
@@ -65,13 +64,17 @@ services:
       - "8084:8080"
     depends_on:
       - db
+    entrypoint:
+      - "/opt/keycloak/bin/kc.sh"
+      - "start"
+      - "--http-port=8080"
+      - "--http-enabled=true"
   keycloak-init-service:
     build:
-      context: ./keyCloak/init
+      context: ./keyCloak
     depends_on:
       - keycloak
     environment:
-      KEYCLOAK_URL: "http://keycloak:8080"  
-    entrypoint: ["python", "/app/setup-keycloak-realm.py"]
+      KEYCLOAK_URL: "http://keycloak:8080"
 volumes:
   shared:

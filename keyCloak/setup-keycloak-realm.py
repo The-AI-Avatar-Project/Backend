@@ -1,7 +1,6 @@
 import requests
 import json
 import time
-from typing import List, Dict
 
 KEYCLOAK_URL = "http://keycloak:8080"
 ADMIN_USERNAME = "admin"
@@ -27,7 +26,7 @@ class KeycloakSetup:
             raise
         return resp
 
-    def load_config(self, filepath: str) -> Dict:
+    def load_config(self, filepath: str):
         with open(filepath, "r") as f:
             return json.load(f)
 
@@ -73,7 +72,7 @@ class KeycloakSetup:
         else:
             raise RuntimeError(f"Failed to create role '{role_name}': {resp.text}")
 
-    def assign_realm_roles(self, user_id: str, role_names: List[str]):
+    def assign_realm_roles(self, user_id: str, role_names):
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         roles = []
         for name in role_names:
@@ -164,7 +163,7 @@ class KeycloakSetup:
             self.create_client(client)
             self.add_group_membership_mapper(client["clientId"])
 
-    def create_client(self, client_data: Dict):
+    def create_client(self, client_data):
         url = f"{KEYCLOAK_URL}/admin/realms/{self.realm}/clients"
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         resp = requests.post(url, json=client_data, headers=headers)
@@ -223,7 +222,7 @@ class KeycloakSetup:
                 except ValueError as e:
                     raise ValueError(f"{e} (for user '{user['username']}')")
 
-    def create_user(self, user_data: Dict) -> str:
+    def create_user(self, user_data) -> str:
         url = f"{KEYCLOAK_URL}/admin/realms/{self.realm}/users"
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         user = {
