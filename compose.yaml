@@ -25,18 +25,32 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
-  googletts:
+  coqui:
     build:
-      context: ./services/google
+      context: ./services/coqui
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - COQUI_TOS_AGREED=1
+      - COQUI_NON_COMMERCIAL=1
     ports:
-      - 8083:8080
+      - "8083:8080"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    volumes:
+      - profiles:/app/profiles
+      - ./services/coqui/model:/root/.local/share/tts
   video:
     build:
       context: ./services/video
     ports:
       - 8085:8080
     volumes:
-      - shared:/root/share
+      - transfer:/root/share/transfer
   backend:
     build: .
     ports:
@@ -48,7 +62,8 @@ services:
     env_file:
       - .env
     volumes:
-      - shared:/usr/src/myapp/share
+      - transfer:/usr/src/myapp/share/transfer
+      - profiles:/usr/src/myapp/share/profiles
   keycloak:
     image: keycloak/keycloak:26.2.0
     environment:
@@ -77,4 +92,5 @@ services:
     environment:
       KEYCLOAK_URL: "http://keycloak:8080"
 volumes:
-  shared:
+  transfer:
+  profiles:

@@ -27,7 +27,7 @@ public class PipelineService {
 
     public AvatarResponse processText(String input, String id) throws IOException {
         String textResponse = llmService.generateResponse(input, id);
-        byte[] audioBytes = ttsService.processText(textResponse);
+        byte[] audioBytes = ttsService.processText(textResponse, "100", "de");
         StreamingResponseBody videoBody = videoService.generateVideo(audioBytes);
         return new AvatarResponse(textResponse, videoBody, Optional.empty());
     }

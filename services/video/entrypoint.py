@@ -30,7 +30,7 @@ class TTSRequest(BaseModel):
 
 FRAME_RATE = 10 
 THRESHOLD_DBFS = -35
-SHARE_FOLDER = "/root/share/"
+SHARE_FOLDER = "/root/share/transfer/"
 TMP_FOLDER = "/tmp/"
 
 def analyze_audio_chunks(audio, chunk_length_ms=100, threshold_dbfs=-35):
