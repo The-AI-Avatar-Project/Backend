@@ -43,10 +43,4 @@ public class WebConfiguration implements WebMvcConfigurer, WebSocketConfigurer {
         return http.build();
     }
 
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder
-                .withJwkSetUri("http://host.docker.internal:8084/realms/AI-Avatar/protocol/openid-connect/certs")
-                .build();
-    }
 }
