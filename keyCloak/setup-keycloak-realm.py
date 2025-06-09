@@ -191,7 +191,7 @@ class KeycloakSetup:
             "protocolMapper": "oidc-group-membership-mapper",
             "consentRequired": False,
             "config": {
-                "full.path": "false",
+                "full.path": "true",
                 "id.token.claim": "true",
                 "access.token.claim": "true",
                 "userinfo.token.claim": "true",
@@ -204,6 +204,33 @@ class KeycloakSetup:
             print("Group Membership mapper created or already exists.")
         else:
             raise RuntimeError(f"Error creating Group Membership mapper for client '{client_id}': {resp.text}")
+
+
+    def assign_service_account_roles(self, client_id: str, role_names):
+        headers = {"Authorization": f"Bearer {self.token}"}
+        client_resp = self._request("GET", f"{KEYCLOAK_URL}/admin/realms/{self.realm}/clients?clientId={client_id}", headers=headers)
+        client = client_resp.json()[0]
+        client_uuid = client["id"]
+
+        sa_user_resp = self._request("GET", f"{KEYCLOAK_URL}/admin/realms/{self.realm}/clients/{client_uuid}/service-account-user", headers=headers)
+        service_account_id = sa_user_resp.json()["id"]
+
+        mgmt_resp = self._request("GET", f"{KEYCLOAK_URL}/admin/realms/{self.realm}/clients?clientId=realm-management", headers=headers)
+        realm_mgmt_id = mgmt_resp.json()[0]["id"]
+
+        roles_resp = self._request("GET", f"{KEYCLOAK_URL}/admin/realms/{self.realm}/clients/{realm_mgmt_id}/roles", headers=headers)
+        all_roles = roles_resp.json()
+
+        desired_roles = [role for role in all_roles if role["name"] in role_names]
+        if not desired_roles:
+            raise ValueError(f"No matching roles found in realm-management for: {role_names}")
+
+        assign_url = f"{KEYCLOAK_URL}/admin/realms/{self.realm}/users/{service_account_id}/role-mappings/clients/{realm_mgmt_id}"
+        assign_resp = requests.post(assign_url, headers=headers, json=desired_roles)
+        if assign_resp.status_code in (204, 409):
+            print(f"Assigned admin API roles {role_names} to service account of client '{client_id}'.")
+        else:
+            raise RuntimeError(f"Failed to assign roles to service account: {assign_resp.text}")
 
 
     # ---- USER MANAGEMENT ----
@@ -303,6 +330,11 @@ class KeycloakSetup:
             self.create_groups()
             self.create_users()
             self.assign_group_owners()
+
+            self.assign_service_account_roles(
+            client_id="backend-client",
+            role_names=["view-realm", "view-users", "query-groups"]
+        )
             print("Keycloak setup completed.")
 
 

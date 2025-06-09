@@ -5,13 +5,15 @@
       "clientId": "frontend-client",
       "redirectUris": ["http://localhost:3000/*", "http://localhost:4200/*"],
       "publicClient": true,
-      "webOrigins": ["*"]
+      "webOrigins": ["*"],
+      "serviceAccountsEnabled": false
     },
     {
       "clientId": "backend-client",
       "redirectUris": [],
       "publicClient": false,
-      "webOrigins": []
+      "webOrigins": [],
+      "serviceAccountsEnabled": true
     }
   ],
   "roles": [

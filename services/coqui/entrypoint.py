@@ -19,6 +19,7 @@ app.add_middleware(
 
 BASE_DIR = "profiles"
 FALLBACK_VOICE = "/app/fallback.mp3"
+TRANSFER_DIR = "transfer"
 os.makedirs(BASE_DIR, exist_ok=True)
 
 
@@ -36,12 +37,12 @@ async def speak(request: AudioGenerationRequest = Body(...)):
     voice_path = os.path.join(user_dir, "voice.mp3")
 
     if not os.path.isfile(voice_path):
-        #raise HTTPException(status_code=404, detail="Voice not found for this user.")
         print("Voice " + request.id + " does not exist. Using fallback voice")
         os.makedirs(user_dir, exist_ok=True)
         voice_path = FALLBACK_VOICE
 
-    output_path = os.path.join(user_dir, f"spoken_{uuid.uuid4().hex}.wav")
+    output_file_name = f"spoken_{uuid.uuid4().hex}.wav"
+    output_path = os.path.join(TRANSFER_DIR, output_file_name)
 
     try:
         tts.tts_to_file(
@@ -53,4 +54,4 @@ async def speak(request: AudioGenerationRequest = Body(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference failed: {e}")
 
-    return FileResponse(output_path, media_type="audio/wav", filename="output.wav")
+    return output_file_name

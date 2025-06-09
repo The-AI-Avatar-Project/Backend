@@ -1,6 +1,7 @@
 package com.github.avatar.service;
 
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -13,7 +14,7 @@ public class AvatarService {
         this.ttsService = ttsService;
     }
 
-    public void createAvatar(String id, ByteArrayResource voiceRecording) throws IOException {
-        ttsService.cloneVoice(id, voiceRecording);
+    public void createAvatar(Jwt jwt, ByteArrayResource voiceRecording) throws IOException {
+        ttsService.cloneVoice(jwt.getSubject(), voiceRecording);
     }
 }

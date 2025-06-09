@@ -43,6 +43,7 @@ services:
               capabilities: [ gpu ]
     volumes:
       - profiles:/app/profiles
+      - transfer:/app/transfer
       - ./services/coqui/model:/root/.local/share/tts
   video:
     build:

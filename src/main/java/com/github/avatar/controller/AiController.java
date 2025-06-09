@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/ai")
@@ -24,13 +25,12 @@ public class AiController {
         this.webSocketHandler = webSocketHandler;
     }
 
-    @PostMapping(value = {"/text/{id}", "/text"})
-    public ResponseEntity<StreamingResponseBody> requestLlmResponse(HttpServletRequest request, @RequestBody String input, @PathVariable(required = false) String id) throws IOException {
-        if (id == null || id.isEmpty()) {
-            id = "0";
-        }
+    public record AvatarTextRequest(String text, String roomPath, Optional<String> chatId) {}
 
-        AvatarResponse response = pipelineService.processText(input, id);
+
+    @PostMapping("/text")
+    public ResponseEntity<StreamingResponseBody> requestLlmResponse(HttpServletRequest request, @RequestBody AvatarTextRequest avatarTextRequest) throws IOException {
+        AvatarResponse response = pipelineService.processText(avatarTextRequest.text(), avatarTextRequest.roomPath(), avatarTextRequest.chatId().orElse(""));
         String clientIp = request.getRemoteAddr();
         webSocketHandler.sendToIp(clientIp, response);
 
@@ -39,11 +39,8 @@ public class AiController {
                 .body(response.responseVideo());
     }
 
-    @PostMapping(value = {"/audio/{id}", "/audio"})
-    public ResponseEntity<StreamingResponseBody> requestSttResponse(HttpServletRequest request, @RequestParam("file") MultipartFile file, @PathVariable(required = false) String id) throws IOException {
-        if (id == null || id.isEmpty()) {
-            id = "0";
-        }
+    @PostMapping("/audio")
+    public ResponseEntity<StreamingResponseBody> requestSttResponse(HttpServletRequest request, @RequestParam("file") MultipartFile file, @RequestParam("roomPath") String roomPath, @RequestParam(value = "chatId", required = false) String chatId) throws IOException {
         ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
             @Override
             public String getFilename() {
@@ -51,7 +48,8 @@ public class AiController {
             }
         };
 
-        AvatarResponse response = pipelineService.processAudio(fileResource, id);
+        String chatIdNonNull = chatId == null ? "" : chatId;
+        AvatarResponse response = pipelineService.processAudio(fileResource, roomPath, chatIdNonNull);
         String clientIp = request.getRemoteAddr();
         webSocketHandler.sendToIp(clientIp, response);
 

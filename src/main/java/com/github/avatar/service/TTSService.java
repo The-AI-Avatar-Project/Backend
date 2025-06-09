@@ -21,7 +21,7 @@ public class TTSService {
     @Value("${tts.server.url}")
     private String ttsServerUrl;
 
-    public byte[] processText(String text, String id, String language) {
+    public byte[] processText(String text, String id, String language) throws IOException {
         // RestClient did not work for some reason
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -33,8 +33,11 @@ public class TTSService {
         body.put("id", id);
 
         HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
-        ResponseEntity<byte[]> response = restTemplate.postForEntity(ttsServerUrl, requestEntity, byte[].class);
-        return response.getBody();
+        ResponseEntity<String> response = restTemplate.postForEntity(ttsServerUrl, requestEntity, String.class);
+        String fileName = response.getBody().replaceAll("\"", "");
+        byte[] audio = Files.readAllBytes(Path.of("./share/transfer/" + fileName));
+        Files.delete(Path.of("./share/transfer/" + fileName));
+        return audio;
     }
 
     public void cloneVoice(String id, ByteArrayResource voiceRecording) throws IOException {
