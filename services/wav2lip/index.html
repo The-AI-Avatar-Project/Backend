@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Wav2Lip Stream Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f8;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #444;
+            margin-bottom: 1.5rem;
+        }
+
+        .container {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        input[type="file"], input[type="text"] {
+            margin: 0.5rem 0 1rem;
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        video {
+            margin-top: 2rem;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+<h1>Wav2Lip Streaming Demo</h1>
+
+<!-- 🧑‍🏫 Register Section -->
+<div class="container">
+    <h2>👤 Professor registrieren</h2>
+    <label for="reg_professor">Professor-Name:</label>
+    <input type="text" id="reg_professor" placeholder="z. B. prof_müller">
+
+    <label for="reg_video">🎥 Standard-Video-Datei:</label>
+    <input type="file" id="reg_video" accept="video/*">
+
+    <button onclick="registerProfessor()">📝 Registrieren</button>
+</div>
+
+<!-- 🎬 Inference Section -->
+<div class="container">
+    <h2>💬 Inferenz starten</h2>
+    <label for="professor">Professor-Name:</label>
+    <input type="text" id="professor" placeholder="z. B. prof_müller" value="default">
+
+    <label for="audio">🔊 Audiodatei auswählen:</label>
+    <input type="file" id="audio" accept="audio/*">
+
+    <button onclick="sendData()">🚀 Starten</button>
+    <video id="result" controls autoplay></video>
+</div>
+
+<script>
+    async function registerProfessor() {
+        const prof = document.getElementById("reg_professor").value.trim();
+        const videoFile = document.getElementById("reg_video").files[0];
+
+        if (!prof || !videoFile) {
+            alert("Bitte gib einen Namen ein und wähle ein Video.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("professor", prof);
+        formData.append("default_video", videoFile);
+
+        const response = await fetch("http://localhost:8085/register/", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            alert("Fehler beim Registrieren: " + (await response.text()));
+        } else {
+            const data = await response.json();
+            alert("Erfolgreich registriert: " + data.profile);
+        }
+    }
+
+    async function sendData() {
+        const audioFile = document.getElementById("audio").files[0];
+        const professor = document.getElementById("professor").value.trim();
+        const resultVideo = document.getElementById("result");
+
+        if (!audioFile || !professor) {
+            alert("Bitte gib einen Professor-Namen ein und wähle eine Audiodatei aus.");
+            return;
+        }
+
+        const mediaSource = new MediaSource();
+        resultVideo.src = URL.createObjectURL(mediaSource);
+
+        mediaSource.addEventListener("sourceopen", async () => {
+            const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001F, mp4a.40.2"');
+            const formData = new FormData();
+            formData.append("professor", professor);
+            formData.append("audio", audioFile);
+
+            const response = await fetch("http://localhost:8085/inference/", {
+                method: "POST",
+                body: JSON.stringify({
+                    professor_id: "asdhjsdjf",
+                    audio_name: "HALLO.mp3"
+                })
+            });
+
+            if (!response.ok) {
+                alert("Fehler bei der Inferenz: " + (await response.text()));
+                return;
+            }
+
+            const reader = response.body.getReader();
+            const pump = async () => {
+                const { done, value } = await reader.read();
+                if (done) {
+                    try {
+                        mediaSource.endOfStream();
+                    } catch (e) {
+                        console.warn("endOfStream Fehler:", e);
+                    }
+                    return;
+                }
+
+                try {
+                    sourceBuffer.appendBuffer(value);
+                } catch (e) {
+                    console.error("Fehler beim appendBuffer:", e);
+                    return;
+                }
+
+                if (!sourceBuffer.updating) {
+                    pump();
+                } else {
+                    sourceBuffer.addEventListener("updateend", pump, { once: true });
+                }
+            };
+
+            pump();
+        });
+    }
+</script>
+</body>
+</html>

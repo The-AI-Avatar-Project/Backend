@@ -43,9 +43,10 @@ public class VideoService {
         Files.write(audioFile, audioBytes);
     }
 
-    private StreamingResponseBody requestVideo(String audioName) {
+    private StreamingResponseBody requestVideo(String audioName, String id) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("file_name", audioName);
+        payload.put("audio_name", audioName);
+        payload.put("professor_id", id);
 
         return outputStream -> {
             webClient.post()
@@ -71,9 +72,9 @@ public class VideoService {
         };
     }
 
-    public StreamingResponseBody generateVideo(byte[] audio) throws IOException {
+    public StreamingResponseBody generateVideo(byte[] audio, String id) throws IOException {
         String filename = System.currentTimeMillis()+".mp3";
         saveAudio(audio, filename);
-        return requestVideo(filename);
+        return requestVideo(filename, id);
     }
 }

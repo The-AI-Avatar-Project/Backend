@@ -33,7 +33,7 @@ public class PipelineService {
         String textResponse = llmService.generateResponse(input, roomId);
         String ownerId = keycloakService.getGroupOwnerId(roomId);
         byte[] audioBytes = ttsService.processText(textResponse, ownerId, "de");
-        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes);
+        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, roomId);
         return new AvatarResponse(textResponse, videoBody, Optional.empty());
     }
 
