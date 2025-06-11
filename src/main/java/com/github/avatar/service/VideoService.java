@@ -1,6 +1,7 @@
 package com.github.avatar.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class VideoService {
     }
 
     private void saveAudio(byte[] audioBytes, String fileName) throws IOException{
-        Path audioFile = Paths.get("./share/" + fileName);
+        Path audioFile = Paths.get("./share/transfer/" + fileName);
         audioFile.toFile().getParentFile().mkdirs();
         Files.createFile(audioFile);
         Files.write(audioFile, audioBytes);
@@ -60,11 +61,13 @@ public class VideoService {
                             outputStream.flush();
                         } catch (IOException e) {
                             throw new RuntimeException(e);
+                        } finally {
+                            DataBufferUtils.release(dataBuffer);
                         }
                     })
                     .doOnError(Throwable::printStackTrace)
                     .blockLast();
-            Files.delete(Paths.get("./share/" + audioName));
+            Files.delete(Paths.get("./share/transfer/" + audioName));
         };
     }
 
