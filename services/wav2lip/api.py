@@ -63,11 +63,12 @@ async def run_inference(request: VideoGenerationRequest):
     user_dir = os.path.join(PROFILES_DIR, request.professor_id)
     face_path = ""
     if os.path.isdir(user_dir):
-        default_files = [f for f in os.listdir(user_dir) if f.startswith('wav2lip.')]
+        default_files = [f for f in os.listdir(user_dir) if f.startswith('face.')]
         if not default_files:
-            print("Avatar not found. Using fallback video")
+            print("Avatar found, but no video file present. Using fallback video")
             face_path = FALLBACK_VIDEO
-        face_path = os.path.join(user_dir, default_files[0])
+        else:
+            face_path = os.path.join(user_dir, default_files[0])
     else:
         print("Avatar not found. Using fallback video")
         face_path = FALLBACK_VIDEO

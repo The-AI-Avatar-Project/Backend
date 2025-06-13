@@ -29,11 +29,11 @@ public class PipelineService {
         this.keycloakService = keycloakService;
     }
 
-    public AvatarResponse processText(String input, String roomId, String chatId) throws IOException {
-        String textResponse = llmService.generateResponse(input, roomId);
-        String ownerId = keycloakService.getGroupOwnerId(roomId);
+    public AvatarResponse processText(String input, String roomPath, String chatId) throws IOException {
+        String textResponse = llmService.generateResponse(input, roomPath);
+        String ownerId = keycloakService.getGroupOwnerId(roomPath);
         byte[] audioBytes = ttsService.processText(textResponse, ownerId, "de");
-        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, roomId);
+        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, ownerId);
         return new AvatarResponse(textResponse, videoBody, Optional.empty());
     }
 

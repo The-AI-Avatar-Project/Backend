@@ -40,9 +40,9 @@ public class TTSService {
         return audio;
     }
 
-    public void cloneVoice(String id, ByteArrayResource voiceRecording) throws IOException {
+    public void cloneVoice(String id, byte[] voiceRecording) throws IOException {
         Path audioFile = Paths.get("./share/profiles/" + id + "/voice.mp3");
         audioFile.toFile().getParentFile().mkdirs();
-        Files.write(audioFile, voiceRecording.getByteArray());
+        Files.write(audioFile, voiceRecording);
     }
 }

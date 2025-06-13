@@ -20,14 +20,7 @@ public class AvatarController {
     }
 
     @PostMapping("/create")
-    public void createAvatar(@AuthenticationPrincipal Jwt jwt, @RequestParam("voice") MultipartFile voice) throws IOException {
-        ByteArrayResource fileResource = new ByteArrayResource(voice.getBytes()) {
-            @Override
-            public String getFilename() {
-                return voice.getOriginalFilename();
-            }
-        };
-
-        avatarService.createAvatar(jwt, fileResource);
+    public void createAvatar(@AuthenticationPrincipal Jwt jwt, @RequestParam("voice") MultipartFile voice, @RequestParam(value = "face_video", required = false) MultipartFile video, @RequestParam(value = "face_image", required = false) MultipartFile image) throws IOException {
+        avatarService.saveAvatar(jwt, voice, video, image);
     }
 }

@@ -1,6 +1,8 @@
 package com.github.avatar.service;
 
+import com.github.avatar.Main;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -24,6 +26,14 @@ import java.util.Map;
 public class VideoService {
     @Value("${video.server.url}")
     private String videoGenerationServerUrl;
+
+    @Value("${profiles_path}")
+    private String profilesPath;
+
+    @Value("${transfer_path}")
+    private String transferPath;
+
+
     private final WebClient webClient;
 
     public VideoService() {
@@ -37,7 +47,7 @@ public class VideoService {
     }
 
     private void saveAudio(byte[] audioBytes, String fileName) throws IOException{
-        Path audioFile = Paths.get("./share/transfer/" + fileName);
+        Path audioFile = Paths.get(transferPath + fileName);
         audioFile.toFile().getParentFile().mkdirs();
         Files.createFile(audioFile);
         Files.write(audioFile, audioBytes);
@@ -68,7 +78,7 @@ public class VideoService {
                     })
                     .doOnError(Throwable::printStackTrace)
                     .blockLast();
-            Files.delete(Paths.get("./share/transfer/" + audioName));
+            Files.delete(Paths.get(transferPath + audioName));
         };
     }
 
@@ -76,5 +86,29 @@ public class VideoService {
         String filename = System.currentTimeMillis()+".mp3";
         saveAudio(audio, filename);
         return requestVideo(filename, id);
+    }
+
+    public void clearFace(String id) {
+        Path videoPath = Paths.get(profilesPath + id + "/face.mp4");
+        Path imagePath = Paths.get(profilesPath + id + "/face.png");
+        try {
+            Files.deleteIfExists(videoPath);
+            Files.deleteIfExists(imagePath);
+        } catch (IOException e) {
+            Main.LOGGER.error("Could not delete face files:", e);
+        }
+
+    }
+
+    public void saveFaceVideo(String id, byte[] faceVideo) throws IOException {
+        Path videoPath = Paths.get(profilesPath + id + "/face.mp4");
+        videoPath.toFile().getParentFile().mkdirs();
+        Files.write(videoPath, faceVideo);
+    }
+
+    public void saveFaceImage(String id, byte[] faceImage) throws IOException {
+        Path imagePath = Paths.get(profilesPath + id + "/face.png");
+        imagePath.toFile().getParentFile().mkdirs();
+        Files.write(imagePath, faceImage);
     }
 }
