@@ -6,6 +6,14 @@ The only requirement is [Docker](https://www.docker.com/). If you want to make c
 ## Starting
 To start the backend, simply run `docker compose up --build`. 
 
+## Post start
+After the backend has started successfully, you need to grab the keycloak backend-client token and paste it into `src/main/resources/application.properties`. To grab the token:
+1. Go to the [the Keycloak interface](http://localhost:8084/admin/master/console/#/AI-Avatar/clients/). Username: `admin` Passwort: `secret`
+2. Click on the backend-client -> Credentials
+3. Copy the client secret
+4. Paste into the `keycloak.admin-token` field of `src/main/resources/application.properties`
+5. Restart the backend
+
 ## Accessing
 
 ### Adminer

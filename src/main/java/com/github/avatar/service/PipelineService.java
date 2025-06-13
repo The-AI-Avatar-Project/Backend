@@ -1,6 +1,5 @@
 package com.github.avatar.service;
 
-import com.github.avatar.Main;
 import com.github.avatar.dto.AvatarResponse;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -8,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -29,11 +27,11 @@ public class PipelineService {
         this.keycloakService = keycloakService;
     }
 
-    public AvatarResponse processText(String input, String roomId, String chatId) throws IOException {
-        String textResponse = llmService.generateResponse(input, roomId);
-        String ownerId = keycloakService.getGroupOwnerId(roomId);
+    public AvatarResponse processText(String input, String roomPath, String chatId) throws IOException {
+        String textResponse = llmService.generateResponse(input, roomPath);
+        String ownerId = keycloakService.getGroupOwnerId(roomPath);
         byte[] audioBytes = ttsService.processText(textResponse, ownerId, "de");
-        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes);
+        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, ownerId);
         return new AvatarResponse(textResponse, videoBody, Optional.empty());
     }
 
