@@ -2,7 +2,6 @@ package com.github.avatar.controller;
 
 
 import com.github.avatar.service.AvatarService;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
