@@ -2,7 +2,6 @@ package com.github.avatar.service;
 
 import com.github.avatar.Main;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -100,7 +99,13 @@ public class VideoService {
 
     }
 
-    public void saveFaceVideo(String id, byte[] faceVideo) throws IOException {
+    /**
+     * Currently unused. Saves a video of a face for use as a reference in wav2lip.
+     * @param id The userId of the user to save the video to
+     * @param faceVideo The bytes of the video
+     * @throws IOException If the profile folder cant be written to
+     */
+    private void saveFaceVideo(String id, byte[] faceVideo) throws IOException {
         Path videoPath = Paths.get(profilesPath + id + "/face.mp4");
         videoPath.toFile().getParentFile().mkdirs();
         Files.write(videoPath, faceVideo);

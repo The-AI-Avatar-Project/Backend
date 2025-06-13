@@ -29,31 +29,6 @@ for d in (INPUT_DIR, OUTPUT_DIR, PROFILES_DIR):
 # Preload wav2lip into VRAM
 model = Wav2LipInference("./checkpoints/wav2lip_gan.pth")
 
-
-@app.post("/register/")
-async def register_profile(
-    professor: str = Form(...),
-    default_video: UploadFile = File(...)
-):
-    if not professor.strip():
-        raise HTTPException(status_code=400, detail="`professor` field must not be empty")
-
-    user_dir = os.path.join(PROFILES_DIR, professor)
-    os.makedirs(user_dir, exist_ok=True)
-
-    ext        = default_video.filename.rsplit(".", 1)[-1]
-    video_name = f"{professor}_default.{ext}"
-    video_path = os.path.join(user_dir, video_name)
-    with open(video_path, "wb") as f:
-        f.write(await default_video.read())
-
-    return {
-        "message": "Profile registered",
-        "profile": professor,
-        "default_video": video_name
-    }
-
-
 class VideoGenerationRequest(BaseModel):
     audio_name: str
     professor_id: str

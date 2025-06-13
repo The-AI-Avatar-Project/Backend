@@ -17,8 +17,11 @@ RUN apt-get update && \
     conda install -y python=3.6 && \
     conda clean -ya
 
+RUN git clone https://github.com/Rudrabha/Wav2Lip.git /app/Wav2Lip
+ADD https://huggingface.co/Nekochu/Wav2Lip/resolve/main/wav2lip_gan.pth /app/Wav2Lip/checkpoints/wav2lip_gan.pth
+ADD https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth /app/Wav2Lip/face_detection/detection/sfd/s3fd.pth
+
 WORKDIR /app/Wav2Lip
-COPY Wav2Lip /app/Wav2Lip
 COPY requirements.txt /app/requirements.txt
 
 

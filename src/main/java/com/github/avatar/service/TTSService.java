@@ -1,7 +1,6 @@
 package com.github.avatar.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,7 +33,7 @@ public class TTSService {
 
         HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(ttsServerUrl, requestEntity, String.class);
-        String fileName = response.getBody().replaceAll("\"", "");
+        String fileName = response.getBody().replace("\"", "");
         byte[] audio = Files.readAllBytes(Path.of("./share/transfer/" + fileName));
         Files.delete(Path.of("./share/transfer/" + fileName));
         return audio;

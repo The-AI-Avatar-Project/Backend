@@ -1,6 +1,5 @@
 package com.github.avatar.service;
 
-import com.github.avatar.Main;
 import com.github.avatar.dto.AvatarResponse;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -8,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
