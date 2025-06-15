@@ -1,0 +1,84 @@
+{
+  "users": [
+    {
+      "username": "fagedi",
+      "firstName": "Fatih",
+      "lastName": "Gedikli",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "maweiss",
+      "firstName": "Malte",
+      "lastName": "Weiß",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "seafzali",
+      "firstName": "Seyed Nima",
+      "lastName": "Afzali",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "ararntz",
+      "firstName": "Alexander",
+      "lastName": "Arntz",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "gebumiller",
+      "firstName": "Gerd",
+      "lastName": "Bumiller",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "stgeisler",
+      "firstName": "Stefan",
+      "lastName": "Geisler",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "ansthaselhoff",
+      "firstName": "Anselm",
+      "lastName": "Haselhoff",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "language": "de"
+    },
+    {
+      "username": "anseel",
+      "firstName": "Andreas",
+      "lastName": "Seeliger",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "language": "en"
+    },
+    {
+      "username": "leneum",
+      "firstName": "Leon",
+      "lastName": "Neumann",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "language": "fr"
+    },
+    {
+      "username": "nihart",
+      "firstName": "Nils",
+      "lastName": "Hartmann",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "language": "de"
+    }
+  ]
+}
