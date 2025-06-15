@@ -1,0 +1,125 @@
+{
+  "realm": "AI-Avatar",
+  "clients": [
+    {
+      "clientId": "frontend-client",
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:4200/*"],
+      "publicClient": true,
+      "webOrigins": ["*"],
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "backend-client",
+      "redirectUris": [],
+      "publicClient": false,
+      "webOrigins": [],
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "roles": [
+    { "name": "admin" },
+    { "name": "student" },
+    { "name": "roomowner" }
+  ],
+  "groups": [
+    "roomowner",
+    "Grundlagen der Informatik und Programmierung",
+    "Mathematik 1 (Ingenieurmathematik)",
+    "Computernetze",
+    "Datenbanken",
+    "Objektorientierte Programmierung",
+    "Algorithmen und Datenstrukturen",
+    "Softwaretechnik",
+    "Betriebssysteme",
+    "Projektmanagement (Informatikprojekt)",
+    "Künstliche Neuronale Netze",
+    "Natural Language Processing",
+    "Robotik",
+    "Cybersecurity",
+    "Mobile Computing",
+    "Virtual und Augmented Reality",
+    "Autonome Systeme",
+    "Bildverarbeitung",
+    "Eingebettete Systeme 2",
+    "Empfehlungssysteme"
+  ],
+  "users": [
+    {
+      "username": "fagedi",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["roomowner"],
+      "groups": [
+        "Grundlagen der Informatik und Programmierung",
+        "Mathematik 1 (Ingenieurmathematik)",
+        "Computernetze",
+        "Datenbanken",
+        "Objektorientierte Programmierung",
+        "Algorithmen und Datenstrukturen",
+        "Softwaretechnik",
+        "Betriebssysteme",
+        "Projektmanagement (Informatikprojekt)",
+        "Künstliche Neuronale Netze",
+        "Natural Language Processing",
+        "Robotik",
+        "Cybersecurity",
+        "Mobile Computing",
+        "Virtual und Augmented Reality",
+        "Autonome Systeme",
+        "Bildverarbeitung",
+        "Eingebettete Systeme 2",
+        "Empfehlungssysteme"
+      ],
+      "owns":[
+        "Grundlagen der Informatik und Programmierung",
+        "Mathematik 1 (Ingenieurmathematik)",
+        "Computernetze",
+        "Datenbanken",
+        "Objektorientierte Programmierung",
+        "Algorithmen und Datenstrukturen",
+        "Softwaretechnik",
+        "Betriebssysteme",
+        "Projektmanagement (Informatikprojekt)",
+        "Künstliche Neuronale Netze",
+        "Natural Language Processing",
+        "Robotik",
+        "Cybersecurity",
+        "Mobile Computing",
+        "Virtual und Augmented Reality",
+        "Autonome Systeme",
+        "Bildverarbeitung",
+        "Eingebettete Systeme 2",
+        "Empfehlungssysteme"
+      ]
+    },
+    {
+      "username": "anseel",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "groups": [
+        "Objektorientierte Programmierung",
+        "Künstliche Neuronale Netze",
+        "Algorithmen und Datenstrukturen"
+      ]
+    },
+    {
+      "username": "leneum",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "groups": [
+        "Bildverarbeitung",
+        "Projektmanagement (Informatikprojekt)",
+        "Mobile Computing"
+      ]
+    },
+    {
+      "username": "nihart",
+      "credentials": [{ "type": "password", "value": "root" }],
+      "role": ["student"],
+      "groups": [
+        "Datenbanken",
+        "Betriebssysteme",
+        "Natural Language Processing"
+      ]
+    }
+  ]
+}
