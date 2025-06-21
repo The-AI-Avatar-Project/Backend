@@ -2,6 +2,8 @@ package com.github.avatar.service;
 
 import com.github.avatar.dto.RoomCreationDTO;
 import com.github.avatar.dto.RoomDTO;
+import com.github.avatar.dto.UserDTO;
+import com.github.avatar.dto.UserSearchDTO;
 import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -13,8 +15,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.util.*;
 
 @Service
@@ -156,6 +160,36 @@ public class KeycloakService {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(response -> (String) response.get("access_token"))
+                .block();
+    }
+
+    public List<UserDTO> getUsers(UserSearchDTO userSearchDTO) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+        MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+
+        if (userSearchDTO.firstName() != null) {
+            queryParams.add("firstName", userSearchDTO.firstName());
+        }
+
+        if (userSearchDTO.lastName() != null) {
+            queryParams.add("lastName", userSearchDTO.lastName());
+        }
+
+        if (userSearchDTO.email() != null) {
+            queryParams.add("email", userSearchDTO.email());
+        }
+
+        if (userSearchDTO.first() != null) {
+            queryParams.add("first", userSearchDTO.first().toString());
+        }
+
+        URI uri = UriComponentsBuilder.fromHttpUrl(adminUrl + "/users").queryParams(queryParams).build().toUri();
+        return webClient.get()
+                .uri(uri)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<UserDTO>>() {})
                 .block();
     }
 }
