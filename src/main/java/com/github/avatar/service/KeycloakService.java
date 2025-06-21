@@ -1,6 +1,8 @@
 package com.github.avatar.service;
 
+import com.github.avatar.dto.RoomCreationDTO;
 import com.github.avatar.dto.RoomDTO;
+import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -10,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 
@@ -37,6 +41,75 @@ public class KeycloakService {
         return rooms;
     }
 
+    private RoomDTO createRoomPath(int year, String semester, String lastName, String roomName, Map<String, List<String>> attributes) {
+        RoomDTO yearGroup = getOrCreateGroup("/" + year, String.valueOf(year), Collections.emptyMap());
+        RoomDTO semesterGroup = getOrCreateSubGroup(yearGroup.id(), "/" + year + "/" + semester, String.valueOf(semester), Collections.emptyMap());
+        RoomDTO lastNameGroup = getOrCreateSubGroup(semesterGroup.id(), "/" + year + "/" + semester + "/" + lastName, lastName, Collections.emptyMap());
+        return getOrCreateSubGroup(lastNameGroup.id(), "/" + year + "/" + semester + "/" + lastName + "/" + roomName, roomName, attributes);
+    }
+
+    private RoomDTO getOrCreateGroup(String path, String name, Map<String, List<String>> attributes) {
+        try {
+            return fetchGroupInfo(path);
+        } catch(WebClientResponseException e) {
+            createGroup(path, name, attributes);
+            return fetchGroupInfo(path);
+        }
+    }
+
+    private RoomDTO getOrCreateSubGroup(@Nullable String parent, String path, String name, Map<String, List<String>> attributes) {
+        try {
+            return fetchGroupInfo(path);
+        } catch(WebClientResponseException e) {
+            createSubGroup(parent, path, name, attributes);
+            return fetchGroupInfo(path);
+        }
+    }
+
+    private void createSubGroup(String parent, String path, String name, Map<String, List<String>> attributes) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", name);
+        body.put("path", path);
+        body.put("attributes", attributes);
+        body.put("parentId", parent);
+
+        webClient.post()
+                .uri(adminUrl + "/groups/" + parent + "/children")
+                .body(Mono.just(body), Map.class)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+    }
+
+    private void createGroup(String path, String name, Map<String, List<String>> attributes) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", name);
+        body.put("path", path);
+        body.put("attributes", attributes);
+
+        webClient.post()
+                .uri(adminUrl + "/groups")
+                .body(Mono.just(body), Map.class)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+    }
+
+    public void createRoom(Jwt jwt, RoomCreationDTO roomDTO) {
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("owner", List.of(jwt.getSubject()));
+        attributes.put("icon", List.of(roomDTO.icon()));
+        createRoomPath(roomDTO.year(), roomDTO.semester(), jwt.getClaim("family_name"), roomDTO.name(), attributes);
+    }
+
     private RoomDTO fetchGroupInfo(String path) {
         String token = getAdminAccessToken();
         WebClient webClient = WebClient.builder().build();
@@ -49,7 +122,7 @@ public class KeycloakService {
                 .block();
 
         Map<String, List<String>> attributes = (Map<String, List<String>>) group.get("attributes");
-        return new RoomDTO(path, (String) group.get("name"), attributes);
+        return new RoomDTO(group.get("id").toString(), path, (String) group.get("name"), attributes);
     }
 
     public String getGroupOwnerId(String groupPath) {

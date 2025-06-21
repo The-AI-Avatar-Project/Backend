@@ -545,7 +545,7 @@ class KeycloakSetup:
             self.realm_mgr.create_roles()
             self.realm_mgr.assign_service_account_roles(
                 client_id="backend-client",
-                role_names=["view-realm", "view-users", "query-groups"]
+                role_names=["view-realm", "view-users", "query-groups", "realm-admin"]
             )
             for path in self.group_mgr.get_group_paths():
                 self.group_mgr.create_group_hierarchy(path)
