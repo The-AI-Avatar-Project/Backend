@@ -42,17 +42,7 @@ public class ReferenceController {
         String requestURL = request.getRequestURL().toString();
         String path = requestURL.split("/get/")[1];
         try {
-            Resource resource = pipelineService.getPdf(jwt, path);
-
-            if (resource == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                    .body(resource);
-
+            return pipelineService.getPdf(jwt, path);
         } catch (MalformedURLException e) {
             return ResponseEntity.badRequest().build();
         }

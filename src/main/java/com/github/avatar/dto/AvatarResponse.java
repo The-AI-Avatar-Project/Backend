@@ -6,6 +6,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.util.Optional;
 
 @JsonIgnoreProperties(value = { "responseVideo" })
-public record AvatarResponse(String responseText, StreamingResponseBody responseVideo, Optional<String> requestText) {
+public record AvatarResponse(LLMResponseDTO responseText, StreamingResponseBody responseVideo, Optional<String> requestText) {
 
 }
