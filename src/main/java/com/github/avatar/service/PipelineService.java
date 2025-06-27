@@ -3,7 +3,11 @@ package com.github.avatar.service;
 import com.github.avatar.dto.AvatarResponse;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
@@ -41,7 +45,17 @@ public class PipelineService {
         return new AvatarResponse(response.responseText(), response.responseVideo(), Optional.of(requestText));
     }
 
-    public void savePdf(Resource file, String id) {
-        pdfService.savePdf(file, id);
+    public ResponseEntity<Void> savePdf(Jwt jwt, Resource file, String id) throws IOException {
+        String ownerId = keycloakService.getGroupOwnerId(id);
+        if (ownerId.equals(jwt.getSubject())) {
+            pdfService.savePdf(file, id);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    public Resource getPdf(Jwt jwt, String path) throws IOException {
+        return pdfService.getPdf(path);
     }
 }

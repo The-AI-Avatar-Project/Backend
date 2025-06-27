@@ -37,16 +37,16 @@ public class LLMService {
                 .build();
 
         List<Document> documents = List.of(
-                new Document("Mathe 1 beginnt um 13 Uhr", Map.of("room", "0")),
-                new Document("Programmieren 1 beginnt um 15 Uhr", Map.of("room", "0")),
-                new Document("Theoretische Informatik beginnt um 13 Uhr", Map.of("room", "1"))
+                new Document("Mathe 1 beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file", "main.pdf")),
+                new Document("Programmieren 1 beginnt um 15 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file", "main.pdf")),
+                new Document("Theoretische Informatik beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file", "main.pdf"))
         );
 
         vectorStore.add(documents);
     }
 
     public String generateResponse(String input, String id) {
-        var response = chatClient
+        ChatClient.CallResponseSpec response = chatClient
                 .prompt()
                 .user(input)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, id))

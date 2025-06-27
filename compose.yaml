@@ -58,6 +58,7 @@ services:
     volumes:
       - transfer:/usr/src/myapp/share/transfer
       - profiles:/usr/src/myapp/share/profiles
+      - references:/usr/src/myapp/references
   keycloak:
     image: keycloak/keycloak:26.2.0
     environment:
@@ -104,3 +105,4 @@ services:
 volumes:
   transfer:
   profiles:
+  references:
