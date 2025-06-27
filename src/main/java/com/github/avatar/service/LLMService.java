@@ -1,5 +1,6 @@
 package com.github.avatar.service;
 
+import com.github.avatar.dto.LLMResponseDTO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
@@ -13,12 +14,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class LLMService {
     private final ChatClient chatClient;
+    private final VectorStore vectorStore;
 
     public LLMService(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
         this.chatClient = chatClientBuilder
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
@@ -37,23 +41,31 @@ public class LLMService {
                 .build();
 
         List<Document> documents = List.of(
-                new Document("Mathe 1 beginnt um 13 Uhr", Map.of("room", "0")),
-                new Document("Programmieren 1 beginnt um 15 Uhr", Map.of("room", "0")),
-                new Document("Theoretische Informatik beginnt um 13 Uhr", Map.of("room", "1"))
+                new Document("Mathe 1 beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1)),
+                new Document("Programmieren 1 beginnt um 15 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1)),
+                new Document("Theoretische Informatik beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1))
         );
 
         vectorStore.add(documents);
     }
 
-    public String generateResponse(String input, String id) {
-        var response = chatClient
+    public LLMResponseDTO generateResponse(String input, String id) {
+        ChatClient.CallResponseSpec response = chatClient
                 .prompt()
                 .user(input)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, id))
                 .advisors(a -> a.param(QuestionAnswerAdvisor.FILTER_EXPRESSION, "room == '" + id + "'"))
                 .call();
 
-        return response.content().replaceAll("(?s)<think>.*?</think>", "").trim();
+        String textResponse = response.content().replaceAll("(?s)<think>.*?</think>", "").trim();
+        List<Document> relevantDocs = vectorStore.similaritySearch(SearchRequest.builder().similarityThreshold(0.6d).query(input).filterExpression("room == '" + id + "'").build());
+        List<String> usedFiles = relevantDocs.stream()
+                .filter(Objects::nonNull)
+                .map(doc -> id + "/" + doc.getMetadata().get("file_name") + ":" + doc.getMetadata().get("page_number"))
+                .map(Object::toString)
+                .distinct()
+                .toList();
+        return new LLMResponseDTO(textResponse, usedFiles);
     }
 
 }
