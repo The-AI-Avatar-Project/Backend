@@ -1,9 +1,7 @@
 package com.github.avatar.service;
 
-import com.github.avatar.Main;
 import com.github.avatar.dto.AvatarResponse;
 import com.github.avatar.dto.LLMResponseDTO;
-import org.springframework.cglib.core.Local;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -12,11 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -39,7 +35,7 @@ public class PipelineService {
 
     public AvatarResponse processText(String input, String roomPath, String chatId) throws IOException {
         LLMResponseDTO llmResponse = llmService.generateResponse(input, roomPath);
-        String ownerId = keycloakService.getGroupOwnerId(roomPath);
+        String ownerId = keycloakService.getGroupOwnerIdByGroupPath(roomPath);
         byte[] audioBytes = ttsService.processText(llmResponse.response(), ownerId, "de");
         StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, ownerId);
         return new AvatarResponse(llmResponse, videoBody, Optional.empty());
@@ -52,7 +48,7 @@ public class PipelineService {
     }
 
     public ResponseEntity<Void> savePdf(Jwt jwt, Resource file, String id) throws IOException {
-        String ownerId = keycloakService.getGroupOwnerId(id);
+        String ownerId = keycloakService.getGroupOwnerIdByGroupPath(id);
         if (ownerId.equals(jwt.getSubject())) {
             pdfService.savePdf(file, id);
         } else {

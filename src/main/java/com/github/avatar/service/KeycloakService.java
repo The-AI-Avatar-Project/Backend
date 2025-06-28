@@ -129,7 +129,23 @@ public class KeycloakService {
         return new RoomDTO(group.get("id").toString(), path, (String) group.get("name"), attributes);
     }
 
-    public String getGroupOwnerId(String groupPath) {
+    public String getGroupOwnerIdByGroupId(String groupId) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        var group = webClient.get()
+                .uri(adminUrl + "/groups/" + groupId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block();
+        if (group == null || group.isEmpty() || !group.containsKey("attributes")) {
+            return "";
+        }
+        return ((List<String>)((Map<?, ?>) group.get("attributes")).get("owner")).get(0);
+    }
+
+    public String getGroupOwnerIdByGroupPath(String groupPath) {
         String token = getAdminAccessToken();
         WebClient webClient = WebClient.builder().build();
 
@@ -160,6 +176,46 @@ public class KeycloakService {
                 .retrieve()
                 .bodyToMono(Map.class)
                 .map(response -> (String) response.get("access_token"))
+                .block();
+    }
+
+    public void setLanguage(Jwt jwt, String language) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        Map<String, Object> body = getUser(jwt.getSubject());
+        body.put("attributes", Map.of("language", List.of(language)));
+
+        webClient.put()
+                .uri(adminUrl + "/users/" + jwt.getSubject())
+                .body(Mono.just(body), Map.class)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+    }
+
+    public Map<String, Object> getUser(String userId) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        return webClient.get()
+                .uri(adminUrl + "/users/" + userId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block();
+    }
+
+    public void addUserToGroup(String groupId, String userId) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+
+        webClient.put()
+                .uri(adminUrl + "/users/" + userId + "/groups/" +  groupId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(Void.class)
                 .block();
     }
 
