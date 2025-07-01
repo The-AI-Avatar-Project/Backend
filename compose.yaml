@@ -25,15 +25,16 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
-  coqui:
+  xtts:
     build:
-      context: ./services/coqui
+      context: ./services/xtts
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8000"
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - COQUI_TOS_AGREED=1
       - COQUI_NON_COMMERCIAL=1
-    ports:
-      - "8083:8080"
     deploy:
       resources:
         reservations:
@@ -44,7 +45,8 @@ services:
     volumes:
       - profiles:/app/profiles
       - transfer:/app/transfer
-      - ./services/coqui/model:/root/.local/share/tts
+      - ./services/xtts/model:/root/.local/share/tts
+      - ./output:/app/output
   backend:
     build: .
     ports:
@@ -100,6 +102,7 @@ services:
     volumes:
       - profiles:/app/Wav2Lip/profiles
       - transfer:/app/Wav2Lip/transfer
+      - ./output:/app/output
     ports:
       - "8085:8080"
 volumes:

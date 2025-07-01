@@ -11,6 +11,21 @@ import threading
 from fastapi.responses import StreamingResponse
 import multiprocessing
 import time
+import uuid
+import os
+import cv2
+import numpy as np
+import time
+import torch
+import threading
+from queue import Queue
+from audio import load_wav, melspectrogram
+import soundfile as sf
+import subprocess
+import tempfile
+import shutil
+import librosa
+
 
 class Wav2LipInference:
     def __init__(self, checkpoint_path, img_size=96):
@@ -82,28 +97,30 @@ class Wav2LipInference:
 
         return img_batch, mel_batch, frame_batch, coords_batch
 
-    def _datagen(self, frames, mels, args, face_det_results):
-        img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+    def _live_datagen(self, frames, mel_stream, args, face_det_results):
+        for filename, mels in mel_stream:
+            img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+            for i, mel in enumerate(mels):
+                idx = 0 if args["static"] else i % len(frames)
+                frame = frames[idx].copy()
+                face, coords = face_det_results[idx]
+                face = cv2.resize(face, (self.img_size, self.img_size))
 
-        for i, mel in enumerate(mels):
-            idx = 0 if args["static"] else i % len(frames)
-            frame = frames[idx].copy()
-            face, coords = face_det_results[idx]
-            face = cv2.resize(face, (self.img_size, self.img_size))
+                img_batch.append(face)
+                mel_batch.append(mel)
+                frame_batch.append(frame)
+                coords_batch.append(coords)
 
-            img_batch.append(face)
-            mel_batch.append(mel)
-            frame_batch.append(frame)
-            coords_batch.append(coords)
+                if len(img_batch) >= args["wav2lip_batch_size"]:
+                    yield self._prepare_batches(img_batch, mel_batch, frame_batch, coords_batch)
+                    img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
 
-            if len(img_batch) >= args["wav2lip_batch_size"]:
+            if len(img_batch) > 0:
                 yield self._prepare_batches(img_batch, mel_batch, frame_batch, coords_batch)
-                img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
 
-        if len(img_batch) > 0:
-            yield self._prepare_batches(img_batch, mel_batch, frame_batch, coords_batch)
+    
 
-    def infer(self, face_path, audio_path, professor='default', **kwargs):
+    def infer(self, face_path, chunk_dir, professor='default', **kwargs):
         args = {
             "static": False,
             "fps": 25.0,
@@ -121,185 +138,174 @@ class Wav2LipInference:
         if not os.path.isfile(face_path):
             raise ValueError("Invalid face path")
 
-        # Load face frames
-        video_load_start = time.time()
-        if face_path.split(".")[-1].lower() in ["jpg", "jpeg", "png"]:
-            args["static"] = True
-            full_frames = [cv2.imread(face_path)]
-            fps = args["fps"]
+        full_frame = cv2.imread(face_path)
+        profile_dir = os.path.join("/app/profiles", professor)
+        os.makedirs(profile_dir, exist_ok=True)
+        cache_fp = os.path.join(profile_dir, "lipdetections.npy")
+
+        if os.path.isfile(cache_fp):
+            coords_arr = np.load(cache_fp)
+            coords = tuple(coords_arr[0])
         else:
-            cap = cv2.VideoCapture(face_path)
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            full_frames = []
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                if args["resize_factor"] > 1:
-                    frame = cv2.resize(frame, (frame.shape[1] // args["resize_factor"], frame.shape[0] // args["resize_factor"]))
-                if args["rotate"]:
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                y1, y2, x1, x2 = args["crop"]
-                y2 = y2 if y2 != -1 else frame.shape[0]
-                x2 = x2 if x2 != -1 else frame.shape[1]
-                full_frames.append(frame[y1:y2, x1:x2])
-            cap.release()
-        print(f"⏱️ Videoladen + Preprocessing: {time.time() - video_load_start:.2f} s")
+            det_results = self._face_detect([full_frame], args["pads"], args["nosmooth"])
+            coords = det_results[0][1]
+            np.save(cache_fp, np.array([coords]))
 
-        # Load audio and extract mels
-        audio_start = time.time()
-        if not audio_path.endswith(".wav"):
-            subprocess.call(f'ffmpeg -y -i "{audio_path}" -strict -2 temp/temp.wav', shell=True)
-            audio_path = "temp/temp.wav"
-        print(f"⏱️ Audio laden & Mel-Spektrum: {time.time() - audio_start:.2f} s")
+        y1, y2, x1, x2 = coords
+        face = full_frame[y1:y2, x1:x2]
+        face = cv2.resize(face, (self.img_size, self.img_size))
 
-        mel_chunk_start = time.time()
-        wav = audio.load_wav(audio_path, 16000)
-        mel = audio.melspectrogram(wav)
-        mel_step_size = 16
-        mel_chunks = []
-        mel_idx_multiplier = 80.0 / fps
-        i = 0
-        while True:
-            start_idx = int(i * mel_idx_multiplier)
-            if start_idx + mel_step_size > mel.shape[1]:
-                mel_chunks.append(mel[:, -mel_step_size:])
-                break
-            mel_chunks.append(mel[:, start_idx:start_idx + mel_step_size])
-            i += 1
-        print(f"⏱️ Mel-Chunk-Erzeugung: {time.time() - mel_chunk_start:.2f} s")
-        full_frames = full_frames[:len(mel_chunks)]
+        # === Neuen Ordner mit UUID anlegen 
+        session = Session(chunk_dir)
 
-        # Detect faces
-        face_detect_start = time.time()
-        detection_dir = os.path.join("temp", professor, "lipdetections")
-        os.makedirs(detection_dir, exist_ok=True)
+        def audio_watcher():
+            seen = set()
 
-        BASE         = os.getcwd()     
-        PROFILES_DIR = os.path.join(BASE, "profiles")
-        detection_dir = os.path.join(PROFILES_DIR, professor)
-        os.makedirs(detection_dir, exist_ok=True)
+            while not session.done_flag["done"]:
+                files = sorted(f for f in os.listdir(chunk_dir) if f.endswith(".wav"))
+                new_files = [f for f in files if f not in seen]
 
-        cache_fp = os.path.join(detection_dir, "lipdetections.npy")
-        to_detect = full_frames if not args["static"] else [full_frames[0]]
-        if args["box"][0] == -1:
-            if os.path.isfile(cache_fp):
-                print("cached lip detection loaded")
-                coords_arr       = np.load(cache_fp)
-                face_det_results = []
-                for i, (y1, y2, x1, x2) in enumerate(coords_arr):
-                    face = to_detect[i][y1:y2, x1:x2]
-                    face = cv2.resize(face, (self.img_size, self.img_size))
-                    face_det_results.append([face, (y1, y2, x1, x2)])
-            else:
-                face_det_results = self._face_detect(to_detect, args["pads"], args["nosmooth"])
-                coords_arr       = np.array([coords for _, coords in face_det_results])
-                np.save(cache_fp, coords_arr)
-                print("Saved lip detection")
-        else:
-            y1, y2, x1, x2 = args["box"]
-            face_det_results = [
-                [f[y1:y2, x1:x2], (y1, y2, x1, x2)]
-                for f in full_frames
-            ]
-        print(f"⏱️ Lip-Detection + Caching: {time.time() - face_detect_start:.2f} s")
-        # Inference and video writing
-        available_threads = max(1, multiprocessing.cpu_count() // 2)
-        ffmpeg_cmd = [
-            "ffmpeg",
-            "-threads", str(available_threads),
-            "-thread_queue_size", "2024",
-            "-y",
-            "-f", "image2pipe",
-            "-r", str(25),
-            "-i", "-",  # input from stdin
-            "-i", audio_path,
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-c:a", "aac",
-            "-f", "mp4",
-            "-tune", "zerolatency",
-            "-movflags", "frag_keyframe+empty_moov+default_base_moof",
-            "pipe:1",
-        ]
+                for fname in new_files:
+                    seen.add(fname)
+                    path = os.path.join(chunk_dir, fname)
 
-        self.ffmpeg_ready = threading.Event()
-
-        def start_ffmpeg():
-            start_time = time.time()
-            self.ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(f"FFmpeg gestartet in {time.time() - start_time:.2f} Sekunden")
-            self.ffmpeg_ready.set()
-
-            def log_ffmpeg_errors():
-                for line in self.ffmpeg_process.stderr:
-                    print("FFmpeg:", line.decode(errors="ignore").strip())
-
-            threading.Thread(target=log_ffmpeg_errors, daemon=True).start()
-
-        threading.Thread(target=start_ffmpeg, daemon=True).start()
-
-        def feed_frames():
-            self.ffmpeg_ready.wait()
-            process = self.ffmpeg_process
-
-            gen = self._datagen(full_frames, mel_chunks, args, face_det_results)
-            for i, (img_batch, mel_batch, frames, coords) in enumerate(tqdm(gen, total=int(np.ceil(float(len(mel_chunks)) / args["wav2lip_batch_size"])))):
-                batch_start = time.time()
-                print(f"\n🔁 Verarbeite Batch {i+1}")
-
-                prep_start = time.time()
-                img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(self.device)
-                mel_batch = torch.FloatTensor(np.transpose(mel_batch, (0, 3, 1, 2))).to(self.device)
-                print(f"⏱️ Datenvorbereitung: {time.time() - prep_start:.2f} s")
-
-                infer_start = time.time()
-                with torch.no_grad():
-                    pred = self.model(mel_batch, img_batch)
-                print(f"⏱️ Modell-Inferenz: {time.time() - infer_start:.2f} s")
-
-                post_start = time.time()
-                pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
-
-                for p, f, c in zip(pred, frames, coords):
-                    y1, y2, x1, x2 = c
-                    p = cv2.resize(p.astype(np.uint8), (x2 - x1, y2 - y1))
-                    f[y1:y2, x1:x2] = p
-                    success, jpeg = cv2.imencode(".jpg", f)
-                    if not success:
-                        print("⚠️ JPEG Encoding fehlgeschlagen – Frame übersprungen.")
-                        continue
                     try:
-                        process.stdin.write(jpeg.tobytes())
-                        process.stdin.flush()
-                    except BrokenPipeError:
-                        print("❌ ffmpeg-Pipe geschlossen – Abbruch.")
-                        return
+                        wav_24khz = load_wav(path, 24000)
+                        wav_16khz = librosa.resample(wav_24khz, orig_sr=24000, target_sr=16000)
+                        mel = melspectrogram(wav_16khz)
+
+                        if mel.shape[1] < 16:
+                            print(f"⚠️ {fname} zu kurz – übersprungen.")
+                            continue
+
+                        mel_chunks = []
+                        i = 0
+                        mel_idx_multiplier = 80.0 / args["fps"]
+                        while True:
+                            start_idx = int(i * mel_idx_multiplier)
+                            if start_idx + 16 > mel.shape[1]:
+                                mel_chunks.append(mel[:, -16:])
+                                break
+                            mel_chunks.append(mel[:, start_idx:start_idx + 16])
+                            i += 1
+
+                        #print(f"🎧 {fname} → {len(mel_chunks)} Mel-Chunks")
+
+                        frames = []
+                        for mel in mel_chunks:
+                            img_masked = face.copy()
+                            img_masked[self.img_size // 2:] = 0
+                            img_input = np.concatenate((img_masked, face), axis=2) / 255.
+                            mel_input = mel.reshape(1, mel.shape[0], mel.shape[1], 1)
+
+                            img_tensor = torch.FloatTensor(img_input.transpose(2, 0, 1)).unsqueeze(0).to(self.device)
+                            mel_tensor = torch.FloatTensor(mel_input.transpose(0, 3, 1, 2)).to(self.device)
+
+                            with torch.no_grad():
+                                pred = self.model(mel_tensor, img_tensor).cpu().numpy()[0]
+                                pred = (pred.transpose(1, 2, 0) * 255).astype(np.uint8)
+
+                            pred_resized = cv2.resize(pred, (x2 - x1, y2 - y1))
+                            frame = full_frame.copy()
+                            frame[y1:y2, x1:x2] = pred_resized
+                            frames.append(frame)
+
+                        self.generate_video_chunk(fname, frames, wav_16khz, session.session_dir, args["fps"])
+
                     except Exception as e:
-                        print(f"❌ Fehler beim Schreiben an ffmpeg: {e}")
-                        return
+                        print(f"⚠️ Fehler bei {fname}: {e}")
+                    
+                    if fname.endswith("f.wav"):
+                        session.done_flag["done"] = True
+                        print(f"🛑 Endsignal erkannt durch Datei: {fname}")
+                        continue
 
-                print(f"⏱️ Post-Processing + Writing: {time.time() - post_start:.2f} s")
-                print(f"⏱️ Gesamtzeit für Batch {i+1}: {time.time() - batch_start:.2f} s")
+                time.sleep(0.1)
 
-            try:
-                process.stdin.close()
-            except Exception as e:
-                print(f"⚠️ Fehler beim Schließen von stdin: {e}")
+        threading.Thread(target=audio_watcher, daemon=True).start()
 
-        threading.Thread(target=feed_frames, daemon=True).start()
+        return session.session_id
+    
+    
+    def generate_video_chunk(self, fname, frames, wav_16khz, session_dir, fps):
+        index = fname.replace(".wav", "")
+        temp_dir = tempfile.mkdtemp()
 
-        def stream_output():
-            self.ffmpeg_ready.wait()
-            process = self.ffmpeg_process
-            try:
-                while True:
-                    chunk = process.stdout.read(8192)
-                    if not chunk:
-                        break
-                    yield chunk
-            finally:
-                process.stdout.close()
-                process.wait()
+        try:
+            audio_duration_sec = librosa.get_duration(y=wav_16khz, sr=16000)
+            expected_frame_count = int(audio_duration_sec * fps)
 
-        return stream_output()
+            if len(frames) < expected_frame_count:
+                last_frame = frames[-1]
+                frames.extend([last_frame] * (expected_frame_count - len(frames)))
+
+            for i, frame in enumerate(frames):
+                cv2.imwrite(os.path.join(temp_dir, f"{i:05d}.jpg"), frame)
+
+            audio_path = os.path.join(temp_dir, "audio.wav")
+            sf.write(audio_path, wav_16khz, 16000)
+
+            out_path = os.path.join(session_dir, f"chunk_{index}.mp4")
+            hls_flags = "append_list+program_date_time" if fname.endswith("f.wav") else "append_list+omit_endlist+program_date_time"
+
+            cmd = [
+                "ffmpeg", "-y",
+                "-r", str(fps),
+                "-i", os.path.join(temp_dir, "%05d.jpg"),
+                "-i", audio_path,
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-preset", "veryfast",
+                "-force_key_frames", f"expr:gte(t,n_forced*2)",
+                "-c:a", "aac",
+                "-f", "hls",
+                "-hls_time", "2",
+                "-hls_list_size", "0",
+                "-hls_flags", hls_flags,
+                "-hls_segment_filename", os.path.join(session_dir, "chunk_%04d.ts"),
+                os.path.join(session_dir, "playlist.m3u8")
+            ]
+
+            subprocess.run(cmd, check=True)
+            #print(f"🎞 {fname} → {os.path.basename(out_path)} gespeichert.")
+
+        finally:
+            shutil.rmtree(temp_dir)
+            
+class Session:
+    def __init__(self, chunk_dir: str):
+        self.session_id = str(uuid.uuid4())
+        self.session_dir = os.path.join(chunk_dir, "video")
+        os.makedirs(self.session_dir, exist_ok=True)
+        self.done_flag = {"done": False}
+
+def watch_chunks(chunk_dir, fps=25.0):
+    already_seen = set()
+    mel_step_size = 16
+
+    while True:
+        chunk_files = sorted(f for f in os.listdir(chunk_dir) if f.endswith("p.wav"))
+        new_files = [f for f in chunk_files if f not in already_seen]
+
+        if not new_files:
+            time.sleep(1)
+            continue
+
+        for filename in new_files:
+            filepath = os.path.join(chunk_dir, filename)
+            wav = audio.load_wav(filepath, 16000)
+            mel = audio.melspectrogram(wav)
+
+            mel_chunks = []
+            mel_idx_multiplier = 80.0 / fps
+            i = 0
+            while True:
+                start_idx = int(i * mel_idx_multiplier)
+                if start_idx + mel_step_size > mel.shape[1]:
+                    mel_chunks.append(mel[:, -mel_step_size:])
+                    break
+                mel_chunks.append(mel[:, start_idx:start_idx + mel_step_size])
+                i += 1
+
+            already_seen.add(filename)
+            yield filename, mel_chunks
