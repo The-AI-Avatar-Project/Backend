@@ -17,8 +17,8 @@ RUN git clone https://github.com/daswer123/xtts-api-server.git /app/xtts_api_ser
 
 ENV PYTHONPATH="${PYTHONPATH}:/app/xtts_api_server"
 
-COPY server.py /app/server.py
-
 RUN pip install stream2sentence
+
+COPY server.py /app/server.py
 
 CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]

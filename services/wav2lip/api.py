@@ -75,7 +75,7 @@ async def run_inference(professor: str = Form(...), uuid: str = Form(...)):
     if not os.path.isdir(chunk_dir) or not os.path.isfile(os.path.join(chunk_dir, "0001p.wav")):
         raise HTTPException(status_code=500, detail="Audio chunks not found")
 
-    default_file = next((f for f in os.listdir(profile_dir) if f.startswith(f"reference.")), None)
+    default_file = next((f for f in os.listdir(profile_dir) if f.startswith(f"face.")), None)
     if not default_file:
         raise HTTPException(status_code=500, detail="No default video or reference image found")
 

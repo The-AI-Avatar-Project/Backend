@@ -16,8 +16,6 @@ services:
       context: ./services/whisper
     volumes:
       - ./services/whisper/model:/models
-    ports:
-      - 8082:8080
     deploy:
       resources:
         reservations:
@@ -28,9 +26,6 @@ services:
   xtts:
     build:
       context: ./services/xtts
-      dockerfile: Dockerfile
-    ports:
-      - "8083:8000"
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - COQUI_TOS_AGREED=1
@@ -45,8 +40,8 @@ services:
     volumes:
       - profiles:/app/profiles
       - transfer:/app/transfer
-      - ./services/xtts/model:/root/.local/share/tts
-      - ./output:/app/output
+      - ./services/xtts/model:/app/models/
+      - video_output:/app/output
   backend:
     build: .
     ports:
@@ -61,6 +56,7 @@ services:
       - transfer:/usr/src/myapp/share/transfer
       - profiles:/usr/src/myapp/share/profiles
       - references:/usr/src/myapp/references
+      - video_output:/usr/src/myapp/output
   keycloak:
     image: keycloak/keycloak:26.2.0
     environment:
@@ -100,12 +96,10 @@ services:
       - LANGUAGE=de_DE:de
       - LC_ALL=de_DE.UTF-8
     volumes:
-      - profiles:/app/Wav2Lip/profiles
-      - transfer:/app/Wav2Lip/transfer
-      - ./output:/app/output
-    ports:
-      - "8085:8080"
+      - profiles:/app/profiles
+      - video_output:/app/output
 volumes:
   transfer:
   profiles:
   references:
+  video_output:
