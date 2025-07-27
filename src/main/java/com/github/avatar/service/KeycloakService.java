@@ -107,11 +107,23 @@ public class KeycloakService {
                 .block();
     }
 
-    public void createRoom(Jwt jwt, RoomCreationDTO roomDTO) {
+    public RoomDTO createRoom(Jwt jwt, RoomCreationDTO roomDTO) {
         Map<String, List<String>> attributes = new HashMap<>();
         attributes.put("owner", List.of(jwt.getSubject()));
         attributes.put("icon", List.of(roomDTO.icon()));
-        createRoomPath(roomDTO.year(), roomDTO.semester(), jwt.getClaim("family_name"), roomDTO.name(), attributes);
+
+        RoomDTO room = createRoomPath(
+            roomDTO.year(),
+            roomDTO.semester(),
+            jwt.getClaim("family_name"),
+            roomDTO.name(),
+            attributes
+        );
+
+        // Add the creator as a member of the group
+        addUserToGroup(room.id(), jwt.getSubject());
+
+        return room;
     }
 
     private RoomDTO fetchGroupInfo(String path) {
