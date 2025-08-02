@@ -32,18 +32,26 @@ public class KeycloakService {
     @Value("${keycloak.token-url}")
     private String tokenUrl;
 
-    public List<RoomDTO> findAllRooms(Jwt jwt) {
-        List<String> groupPaths = jwt.getClaimAsStringList("groups");
-        if (groupPaths == null || groupPaths.isEmpty()) {
-            return Collections.emptyList();
-        }
+  public List<RoomDTO> findAllRooms(String userId) {
+      String token = getAdminAccessToken();
+      WebClient webClient = WebClient.builder().build();
 
-        List<RoomDTO> rooms = new ArrayList<>();
-        for (String groupPath : groupPaths) {
-            rooms.add(fetchGroupInfo(groupPath));
-        }
-        return rooms;
-    }
+      List<Map<String, Object>> groups = webClient.get()
+              .uri(adminUrl + "/users/" + userId + "/groups")
+              .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+              .retrieve()
+              .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
+              .block();
+
+      List<RoomDTO> rooms = new ArrayList<>();
+      for (Map<String, Object> group : groups) {
+          String path = (String) group.get("path");
+          rooms.add(fetchGroupInfo(path));
+      }
+
+      return rooms;
+  }
+
 
     private RoomDTO createRoomPath(int year, String semester, String lastName, String roomName, Map<String, List<String>> attributes) {
         RoomDTO yearGroup = getOrCreateGroup("/" + year, String.valueOf(year), Collections.emptyMap());
