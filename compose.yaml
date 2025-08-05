@@ -1,23 +1,28 @@
 services:
+  certbot-selfsigned:
+    build:
+      context: ./cert-generator
+    volumes:
+      - ./certs:/certs
+    environment:
+      - DOMAIN=192.168.178.60
+    restart: "no"
+
   db:
     image: pgvector/pgvector:pg17
-    ports:
-      - 5432:5432
     environment:
       POSTGRES_PASSWORD: example
       POSTGRES_USER: postgres
       POSTGRES_DB: aiAvatar
+
   adminer:
     image: adminer:latest
-    ports:
-      - 8081:8080
+
   whisper:
     build:
       context: ./services/whisper
     volumes:
       - ./services/whisper/model:/models
-    ports:
-      - 8082:8080
     deploy:
       resources:
         reservations:
@@ -25,6 +30,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
+
   coqui:
     build:
       context: ./services/coqui
@@ -32,8 +38,6 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - COQUI_TOS_AGREED=1
       - COQUI_NON_COMMERCIAL=1
-    ports:
-      - "8083:8080"
     deploy:
       resources:
         reservations:
@@ -45,10 +49,9 @@ services:
       - profiles:/app/profiles
       - transfer:/app/transfer
       - ./services/coqui/model:/root/.local/share/tts
+
   backend:
     build: .
-    ports:
-      - 8080:8080
     depends_on:
       - db
     environment:
@@ -59,6 +62,31 @@ services:
       - transfer:/usr/src/myapp/share/transfer
       - profiles:/usr/src/myapp/share/profiles
       - references:/usr/src/myapp/references
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    volumes:
+      - frontend_dist:/dist/src/app/dist/frontend/browser
+
+
+  reverse_proxy:
+    image: nginx:latest
+    ports:
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./reverse_proxy/default.conf:/etc/nginx/conf.d/default.conf
+      - frontend_dist:/usr/share/nginx/html
+      - ./certs:/etc/nginx/certs
+
+
+
   keycloak:
     image: keycloak/keycloak:26.2.0
     environment:
@@ -79,6 +107,7 @@ services:
       - "start"
       - "--http-port=8080"
       - "--http-enabled=true"
+
   keycloak-init-service:
     build:
       context: ./keyCloak
@@ -86,6 +115,7 @@ services:
       - keycloak
     environment:
       KEYCLOAK_URL: "http://keycloak:8080"
+
   wav2lip:
     build:
       context: services/wav2lip
@@ -100,9 +130,10 @@ services:
     volumes:
       - profiles:/app/Wav2Lip/profiles
       - transfer:/app/Wav2Lip/transfer
-    ports:
-      - "8085:8080"
+
+
 volumes:
   transfer:
   profiles:
   references:
+  frontend_dist:

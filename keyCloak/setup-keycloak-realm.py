@@ -104,9 +104,15 @@ class RealmManager:
 
     def create_client(self, data):
         path = f"/admin/realms/{self.realm}/clients"
-        resp = self.client.request("POST", path, headers=self.client._headers({"Content-Type": "application/json"}), json=data)
+        resp = self.client.request(
+            "POST",
+            path,
+            headers=self.client._headers({"Content-Type": "application/json"}),
+            json=data
+        )
         if resp.status_code in (201, 409):
             print(f"Client '{data['clientId']}' created or already exists.")
+
 
     def assign_service_account_roles(self, client_id: str, role_names):
         headers=self.client._headers({"Content-Type": "application/json"}) 
