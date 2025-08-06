@@ -51,6 +51,7 @@ services:
       - ./services/coqui/model:/root/.local/share/tts
 
   backend:
+    container_name: backend
     build: .
     depends_on:
       - db
