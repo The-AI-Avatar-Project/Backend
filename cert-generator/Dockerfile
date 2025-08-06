@@ -9,4 +9,5 @@ CMD ["sh", "-c", "\
     -newkey rsa:2048 \
     -keyout key.pem \
     -out cert.pem \
-    -subj '/CN=${DOMAIN:-localhost}'"]
+    -subj \"/CN=${DOMAIN:-localhost}\" && \
+  chmod 644 key.pem cert.pem"]

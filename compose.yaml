@@ -99,14 +99,19 @@ services:
       KC_IMPORT: all
       KC_HOSTNAME_STRICT: "false"
     ports:
-      - "8084:8080"
+      - "8084:8081"
     depends_on:
       - db
     entrypoint:
       - "/opt/keycloak/bin/kc.sh"
       - "start"
-      - "--http-port=8080"
       - "--http-enabled=true"
+      - "--http-port=8080"
+      - "--https-port=8081"
+      - "--https-certificate-file=/certs/cert.pem"
+      - "--https-certificate-key-file=/certs/key.pem"
+    volumes:
+      - ./certs:/certs
 
   keycloak-init-service:
     build:
