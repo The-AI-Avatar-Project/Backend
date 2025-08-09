@@ -33,16 +33,16 @@ public class PipelineService {
         this.keycloakService = keycloakService;
     }
 
-    public AvatarResponse processText(String input, String roomPath, String chatId) throws IOException, InterruptedException {
+    public AvatarResponse processText(String input, String roomPath) throws InterruptedException {
         LLMResponseDTO llmResponse = llmService.generateResponse(input, roomPath);
         String ownerId = keycloakService.getGroupOwnerIdByGroupPath(roomPath);
         String streamingUUid = ttsService.processText(llmResponse.response(), ownerId, "de");
         return new AvatarResponse(llmResponse, streamingUUid, Optional.empty());
     }
 
-    public AvatarResponse processAudio(ByteArrayResource input, String roomId, String chatId) throws IOException, InterruptedException {
+    public AvatarResponse processAudio(ByteArrayResource input, String roomId) throws InterruptedException {
         String requestText = sttService.processAudio(input);
-        AvatarResponse response = processText(requestText, roomId, chatId);
+        AvatarResponse response = processText(requestText, roomId);
         return new AvatarResponse(response.responseText(), response.streamingUUID(), Optional.of(requestText));
     }
 

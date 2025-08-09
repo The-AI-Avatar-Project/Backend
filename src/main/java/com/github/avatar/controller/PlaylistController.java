@@ -1,6 +1,5 @@
 package com.github.avatar.controller;
 
-import com.github.avatar.Main;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnOpen;
@@ -72,7 +71,6 @@ public class PlaylistController {
                                 }
                             }
                         }
-                        System.out.println("[ws] Playlist updated, sent 'update' to clients (" + uuid + ")");
                     }
                 } catch (IOException e) {
                     // ignore

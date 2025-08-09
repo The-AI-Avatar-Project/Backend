@@ -49,15 +49,13 @@ public class VideoController {
     }
 
     @GetMapping("/stream/{uuid}/{filename}")
-    public ResponseEntity<StreamingResponseBody> getSegment(@PathVariable String uuid, @PathVariable String filename) throws IOException {
+    public ResponseEntity<StreamingResponseBody> getSegment(@PathVariable String uuid, @PathVariable String filename) {
         Path path = Paths.get(outputPath, uuid, "video", filename);
         if (!Files.exists(path)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
 
-        StreamingResponseBody stream = outputStream -> {
-            Files.copy(path, outputStream);
-        };
+        StreamingResponseBody stream = outputStream -> Files.copy(path, outputStream);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "video/MP2T")

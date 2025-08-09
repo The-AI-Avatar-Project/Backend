@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/ai")
@@ -19,12 +18,12 @@ public class AiController {
         this.pipelineService = pipelineService;
     }
 
-    public record AvatarTextRequest(String text, String roomPath, Optional<String> chatId) {}
+    public record AvatarTextRequest(String text, String roomPath) {}
 
 
     @PostMapping("/text")
-    public AvatarResponse requestLlmResponse(@RequestBody AvatarTextRequest avatarTextRequest) throws IOException, InterruptedException {
-        return pipelineService.processText(avatarTextRequest.text(), avatarTextRequest.roomPath(), avatarTextRequest.chatId().orElse(""));
+    public AvatarResponse requestLlmResponse(@RequestBody AvatarTextRequest avatarTextRequest) throws InterruptedException {
+        return pipelineService.processText(avatarTextRequest.text(), avatarTextRequest.roomPath());
     }
 
     @PostMapping("/audio")
@@ -36,7 +35,6 @@ public class AiController {
             }
         };
 
-        String chatIdNonNull = chatId == null ? "" : chatId;
-        return pipelineService.processAudio(fileResource, roomPath, chatIdNonNull);
+        return pipelineService.processAudio(fileResource, roomPath);
     }
 }

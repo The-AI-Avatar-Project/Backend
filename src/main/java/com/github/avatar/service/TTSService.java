@@ -2,6 +2,7 @@ package com.github.avatar.service;
 
 import com.github.avatar.Main;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class TTSService {
@@ -29,21 +29,26 @@ public class TTSService {
     @Value("${output_path}")
     private String outputPath;
 
-    public String processText(String text, String id, String language) throws IOException, InterruptedException {
+    public String processText(String text, String id, String language) throws InterruptedException {
         Map<String, Object> ttsRequest = new HashMap<>();
         ttsRequest.put("speaker_name", id);
         ttsRequest.put("language", language);
         ttsRequest.put("text", text);
 
         RestTemplate client = new RestTemplate();
-        ResponseEntity<Map> ttsResponse = client.postForEntity(URI.create(ttsServerUrl), ttsRequest, Map.class);
+        ResponseEntity<Map<String, String>> ttsResponse = client.exchange(
+                URI.create(ttsServerUrl),
+                HttpMethod.POST,
+                new HttpEntity<>(ttsRequest),
+                new ParameterizedTypeReference<>() {}
+        );
 
         if (!ttsResponse.getStatusCode().is2xxSuccessful() || !ttsResponse.hasBody() || !ttsResponse.getBody().containsKey("uuid")) {
             Main.LOGGER.error("Tts response code unsuccessful: {}", ttsResponse.getStatusCode());
             return null;
         }
 
-        String uuid = (String) ttsResponse.getBody().get("uuid");
+        String uuid = ttsResponse.getBody().get("uuid");
 
         String chunkPath = outputPath + uuid + "/0001p.wav";
 
