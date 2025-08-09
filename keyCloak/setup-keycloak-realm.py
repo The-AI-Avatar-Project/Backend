@@ -442,7 +442,7 @@ class GroupManager:
                 return resp.json()[0]["id"] if resp.json() else None
         return None
 
-    def assign_students_to_random_classes(self, count_per_student=20):
+    def assign_students_to_random_classes(self, count_per_student=1):
         print(f"Assigning each student to {count_per_student} random classes...")
         group_paths = self.get_group_paths()
 

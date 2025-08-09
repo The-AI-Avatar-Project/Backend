@@ -5,7 +5,7 @@ services:
     volumes:
       - ./certs:/certs
     environment:
-      - DOMAIN=192.168.178.60
+      - DOMAIN=app.fb1-ecommerce.hs-rw.de
     restart: "no"
 
   db:
@@ -77,7 +77,7 @@ services:
   reverse_proxy:
     image: nginx:latest
     ports:
-      - "443:443"
+      - "8080:443"
     depends_on:
       - frontend
       - backend
