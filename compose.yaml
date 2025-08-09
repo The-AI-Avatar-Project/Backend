@@ -16,8 +16,6 @@ services:
       context: ./services/whisper
     volumes:
       - ./services/whisper/model:/models
-    ports:
-      - 8082:8080
     deploy:
       resources:
         reservations:
@@ -25,15 +23,13 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
-  coqui:
+  xtts:
     build:
-      context: ./services/coqui
+      context: ./services/xtts
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - COQUI_TOS_AGREED=1
       - COQUI_NON_COMMERCIAL=1
-    ports:
-      - "8083:8080"
     deploy:
       resources:
         reservations:
@@ -44,7 +40,8 @@ services:
     volumes:
       - profiles:/app/profiles
       - transfer:/app/transfer
-      - ./services/coqui/model:/root/.local/share/tts
+      - ./services/xtts/model:/app/models/
+      - video_output:/app/output
   backend:
     build: .
     ports:
@@ -59,6 +56,7 @@ services:
       - transfer:/usr/src/myapp/share/transfer
       - profiles:/usr/src/myapp/share/profiles
       - references:/usr/src/myapp/references
+      - video_output:/usr/src/myapp/output
   keycloak:
     image: keycloak/keycloak:26.2.0
     environment:
@@ -98,11 +96,10 @@ services:
       - LANGUAGE=de_DE:de
       - LC_ALL=de_DE.UTF-8
     volumes:
-      - profiles:/app/Wav2Lip/profiles
-      - transfer:/app/Wav2Lip/transfer
-    ports:
-      - "8085:8080"
+      - profiles:/app/profiles
+      - video_output:/app/output
 volumes:
   transfer:
   profiles:
   references:
+  video_output:

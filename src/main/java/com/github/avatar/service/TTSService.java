@@ -1,14 +1,17 @@
 package com.github.avatar.service;
 
+import com.github.avatar.Main;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,27 +23,64 @@ public class TTSService {
     @Value("${tts.server.url}")
     private String ttsServerUrl;
 
-    public byte[] processText(String text, String id, String language) throws IOException {
-        // RestClient did not work for some reason
-        RestTemplate restTemplate = new RestTemplate();
+    @Value("${video.server.url}")
+    private String videoServerUrl;
+
+    @Value("${output_path}")
+    private String outputPath;
+
+    public String processText(String text, String id, String language) throws InterruptedException {
+        Map<String, Object> ttsRequest = new HashMap<>();
+        ttsRequest.put("speaker_name", id);
+        ttsRequest.put("language", language);
+        ttsRequest.put("text", text);
+
+        RestTemplate client = new RestTemplate();
+        ResponseEntity<Map<String, String>> ttsResponse = client.exchange(
+                URI.create(ttsServerUrl),
+                HttpMethod.POST,
+                new HttpEntity<>(ttsRequest),
+                new ParameterizedTypeReference<>() {}
+        );
+
+        if (!ttsResponse.getStatusCode().is2xxSuccessful() || !ttsResponse.hasBody() || !ttsResponse.getBody().containsKey("uuid")) {
+            Main.LOGGER.error("Tts response code unsuccessful: {}", ttsResponse.getStatusCode());
+            return null;
+        }
+
+        String uuid = ttsResponse.getBody().get("uuid");
+
+        String chunkPath = outputPath + uuid + "/0001p.wav";
+
+        File chunkFile = new File(Paths.get(chunkPath).normalize().toFile().getAbsolutePath());
+        long start = System.currentTimeMillis();
+        while (!chunkFile.exists()) {
+            Thread.sleep(500);
+            if (System.currentTimeMillis() - start > 15000) {
+                Main.LOGGER.error("Timeout waiting for the first audio chunk.");
+                return null;
+            }
+        }
+
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        Map<String, String> body = new HashMap<>();
-        body.put("text", text);
-        body.put("language", language);
-        body.put("id", id);
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("professor", id);
+        formData.add("uuid", uuid);
 
-        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(ttsServerUrl, requestEntity, String.class);
-        String fileName = response.getBody().replace("\"", "");
-        byte[] audio = Files.readAllBytes(Path.of("./share/transfer/" + fileName));
-        Files.delete(Path.of("./share/transfer/" + fileName));
-        return audio;
+        ResponseEntity<String> wav2lipResponse = client.postForEntity(URI.create(videoServerUrl), new HttpEntity<>(formData, headers), String.class);
+
+        if (!wav2lipResponse.getStatusCode().is2xxSuccessful()) {
+            Main.LOGGER.error("Wav2Lip failed.");
+            return null;
+        }
+
+        return uuid;
     }
 
     public void cloneVoice(String id, byte[] voiceRecording) throws IOException {
-        Path audioFile = Paths.get("./share/profiles/" + id + "/voice.mp3");
+        Path audioFile = Paths.get("./share/profiles/" + id + "/cloned_voice.wav");
         audioFile.toFile().getParentFile().mkdirs();
         Files.write(audioFile, voiceRecording);
     }

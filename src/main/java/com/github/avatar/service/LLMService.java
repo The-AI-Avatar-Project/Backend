@@ -13,7 +13,6 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -39,14 +38,6 @@ public class LLMService {
                                 reply to the user comment. If the answer is not in the context, answer the question based on your own knowledge.
                                 """).build()).build())
                 .build();
-
-        List<Document> documents = List.of(
-                new Document("Mathe 1 beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1)),
-                new Document("Programmieren 1 beginnt um 15 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1)),
-                new Document("Theoretische Informatik beginnt um 13 Uhr", Map.of("room", "/2022/SoSe/Arntz/Bildanalyse", "file_name", "main.pdf", "page_number", 1))
-        );
-
-        vectorStore.add(documents);
     }
 
     public LLMResponseDTO generateResponse(String input, String id) {
