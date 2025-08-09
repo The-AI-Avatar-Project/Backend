@@ -50,7 +50,5 @@ ENV LANG=de_DE.UTF-8 \
 
 COPY inference.py /app/Wav2Lip 
 COPY api.py /app/Wav2Lip
-COPY fallback.mp4 /app/Wav2Lip
-
 
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -2,6 +2,7 @@ package com.github.avatar.service;
 
 import com.github.avatar.dto.AvatarResponse;
 import com.github.avatar.dto.LLMResponseDTO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class PipelineService {
@@ -21,30 +23,27 @@ public class PipelineService {
     private final STTService sttService;
     private final TTSService ttsService;
     private final PDFService pdfService;
-    private final VideoService videoService;
     private final KeycloakService keycloakService;
 
-    public PipelineService(LLMService llmService, STTService sttService, TTSService ttsService, PDFService pdfService, VideoService videoService, KeycloakService keycloakService) {
+    public PipelineService(LLMService llmService, STTService sttService, TTSService ttsService, PDFService pdfService, KeycloakService keycloakService) {
         this.llmService = llmService;
         this.sttService = sttService;
         this.ttsService = ttsService;
         this.pdfService = pdfService;
-        this.videoService = videoService;
         this.keycloakService = keycloakService;
     }
 
-    public AvatarResponse processText(String input, String roomPath, String chatId) throws IOException {
+    public AvatarResponse processText(String input, String roomPath) throws InterruptedException {
         LLMResponseDTO llmResponse = llmService.generateResponse(input, roomPath);
         String ownerId = keycloakService.getGroupOwnerIdByGroupPath(roomPath);
-        byte[] audioBytes = ttsService.processText(llmResponse.response(), ownerId, "de");
-        StreamingResponseBody videoBody = videoService.generateVideo(audioBytes, ownerId);
-        return new AvatarResponse(llmResponse, videoBody, Optional.empty());
+        String streamingUUid = ttsService.processText(llmResponse.response(), ownerId, "de");
+        return new AvatarResponse(llmResponse, streamingUUid, Optional.empty());
     }
 
-    public AvatarResponse processAudio(ByteArrayResource input, String roomId, String chatId) throws IOException {
+    public AvatarResponse processAudio(ByteArrayResource input, String roomId) throws InterruptedException {
         String requestText = sttService.processAudio(input);
-        AvatarResponse response = processText(requestText, roomId, chatId);
-        return new AvatarResponse(response.responseText(), response.responseVideo(), Optional.of(requestText));
+        AvatarResponse response = processText(requestText, roomId);
+        return new AvatarResponse(response.responseText(), response.streamingUUID(), Optional.of(requestText));
     }
 
     public ResponseEntity<Void> savePdf(Jwt jwt, Resource file, String id) throws IOException {

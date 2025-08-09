@@ -1,6 +1,5 @@
 package com.github.avatar.controller;
 
-import com.github.avatar.Main;
 import com.github.avatar.dto.RoomCreationDTO;
 import com.github.avatar.dto.RoomDTO;
 import com.github.avatar.service.KeycloakService;

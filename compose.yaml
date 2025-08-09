@@ -33,7 +33,7 @@ services:
 
   coqui:
     build:
-      context: ./services/coqui
+      context: ./services/xtts
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - COQUI_TOS_AGREED=1
