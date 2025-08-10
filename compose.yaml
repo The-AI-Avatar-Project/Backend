@@ -10,6 +10,8 @@ services:
 
   db:
     image: pgvector/pgvector:pg17
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_PASSWORD: example
       POSTGRES_USER: postgres
@@ -31,7 +33,7 @@ services:
               count: 1
               capabilities: [ gpu ]
 
-  coqui:
+  xtts:
     build:
       context: ./services/xtts
     environment:
@@ -48,7 +50,8 @@ services:
     volumes:
       - profiles:/app/profiles
       - transfer:/app/transfer
-      - ./services/coqui/model:/root/.local/share/tts
+      - ./services/xtts/model:/app/models/
+      - video_output:/app/output
 
   backend:
     container_name: backend
@@ -63,6 +66,7 @@ services:
       - transfer:/usr/src/myapp/share/transfer
       - profiles:/usr/src/myapp/share/profiles
       - references:/usr/src/myapp/references
+      - video_output:/usr/src/myapp/output
 
   frontend:
     build:
@@ -134,12 +138,13 @@ services:
       - LANGUAGE=de_DE:de
       - LC_ALL=de_DE.UTF-8
     volumes:
-      - profiles:/app/Wav2Lip/profiles
-      - transfer:/app/Wav2Lip/transfer
+      - profiles:/app/profiles
+      - video_output:/app/output
 
 
 volumes:
   transfer:
   profiles:
   references:
+  video_output:
   frontend_dist:
