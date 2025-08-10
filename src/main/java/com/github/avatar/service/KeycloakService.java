@@ -191,6 +191,12 @@ public class KeycloakService {
                 .block();
     }
 
+    public String getLanguage(Jwt jwt) {
+        Map<String, Object> body = getUser(jwt.getSubject());
+        Map<String, List<String>> attributes = (Map<String, List<String>>) body.get("attributes");
+        return attributes.get("language").get(0);
+    }
+
     public void setLanguage(Jwt jwt, String language) {
         String token = getAdminAccessToken();
         WebClient webClient = WebClient.builder().build();
