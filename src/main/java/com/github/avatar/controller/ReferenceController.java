@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/references")
@@ -33,8 +35,7 @@ public class ReferenceController {
 
     @RequestMapping(value = "/get/**", method = RequestMethod.GET)
     public ResponseEntity<Resource> downloadPdf(@AuthenticationPrincipal Jwt jwt, HttpServletRequest request) throws IOException {
-        String requestURL = request.getRequestURL().toString();
-        String path = requestURL.split("/get/")[1];
+        String path = URLDecoder.decode(request.getRequestURI().split("/get/")[1], StandardCharsets.UTF_8);
         try {
             return pipelineService.getPdf(jwt, path);
         } catch (MalformedURLException e) {
