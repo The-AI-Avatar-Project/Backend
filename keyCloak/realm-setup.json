@@ -5,6 +5,7 @@
       "clientId": "frontend-client",
       "redirectUris": [
         "https://localhost/*",
+        "https://localhost:8080/*",
         "https://127.0.0.1/*",
         "https://app.fb1-ecommerce.hs-rw.de/*",
         "https://host.docker.internal/*",
@@ -22,6 +23,7 @@
       "publicClient": false,
        "webOrigins": [
         "*",
+        "https://localhost:8080",
         "http://frontend:80",
         "http://localhost:80",
         "http://keycloak:8080"

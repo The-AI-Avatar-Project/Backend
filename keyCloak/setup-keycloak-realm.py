@@ -5,7 +5,7 @@ import random
 
 KEYCLOAK_URL = "http://keycloak:8080"
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "secret"
+ADMIN_PASSWORD = "woommokence"
 
 REALM_FILE = "/app/realm-setup.json"
 USER_FILE = "/app/user-setup.json"

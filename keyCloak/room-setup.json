@@ -1,4 +1,4 @@
-{
+ {
   "classes": [
     {
       "year": 2025,
@@ -7,7 +7,7 @@
       "room_name": "HRW-Modulübersicht",
       "attributes": {
         "owner": "",
-        "icon": "XML"
+        "icon": "Computer.png"
       }
     }
   ]

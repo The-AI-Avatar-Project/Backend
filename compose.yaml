@@ -1,3 +1,4 @@
+
 services:
   certbot-selfsigned:
     build:
@@ -5,7 +6,7 @@ services:
     volumes:
       - ./certs:/certs
     environment:
-      - DOMAIN=app.fb1-ecommerce.hs-rw.de
+      - DOMAIN=localhost #app.fb1-ecommerce.hs-rw.de
     restart: "no"
 
   db:
@@ -100,7 +101,7 @@ services:
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: example
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: secret
+      KEYCLOAK_ADMIN_PASSWORD: woommokence
       KC_IMPORT: all
       KC_HOSTNAME_STRICT: "false"
     ports:
