@@ -419,13 +419,13 @@ async def generate_chunks_background(text, speaker_path, language, chunk_dir):
                 elapsed = time.time() - start_time
                 rtf = elapsed / total_audio_duration_sec if total_audio_duration_sec > 0 else 0
 
-                #print(f"[ChunkStream] Wrote chunk {index:04d}p.wav → {chunk_duration:.2f}s (RTF: {rtf:.2f})")
+                print(f"[ChunkStream] Wrote chunk {index:04d}p.wav → {chunk_duration:.2f}s (RTF: {rtf:.2f})")
                 index += 1
 
         if len(buffer_np) > 0:
             filename = chunk_dir / f"{index:04d}f.wav"
             sf.write(str(filename), buffer_np, sample_rate)
-            #print(f"[ChunkStream] Wrote final chunk {index:04d}f.wav → {len(buffer_np)/sample_rate:.2f}s")
+            print(f"[ChunkStream] Wrote final chunk {index:04d}f.wav → {len(buffer_np)/sample_rate:.2f}s")
 
     except Exception as e:
         logger.error(f"🚩 Streaming to chunked files failed in background: {e}")
