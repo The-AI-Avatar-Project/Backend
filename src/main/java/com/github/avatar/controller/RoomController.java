@@ -22,7 +22,8 @@ public class RoomController {
 
     @GetMapping("/rooms")
     public List<RoomDTO> getRooms(@AuthenticationPrincipal Jwt jwt) {
-        return keycloakService.findAllRooms(jwt);
+        return keycloakService.findAllRooms(jwt.getSubject());
+
     }
 
     @PostMapping("/rooms")
