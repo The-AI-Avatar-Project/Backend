@@ -31,26 +31,26 @@ public class KeycloakService {
 
     @Value("${keycloak.token-url}")
     private String tokenUrl;
-
-  public List<RoomDTO> findAllRooms(String userId) {
-      String token = getAdminAccessToken();
-      WebClient webClient = WebClient.builder().build();
-
-      List<Map<String, Object>> groups = webClient.get()
-              .uri(adminUrl + "/users/" + userId + "/groups")
-              .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-              .retrieve()
-              .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
-              .block();
-
-      List<RoomDTO> rooms = new ArrayList<>();
-      for (Map<String, Object> group : groups) {
-          String path = (String) group.get("path");
-          rooms.add(fetchGroupInfo(path));
-      }
-
-      return rooms;
-  }
+    
+    public List<RoomDTO> findAllRooms(String userId) {
+        String token = getAdminAccessToken();
+        WebClient webClient = WebClient.builder().build();
+    
+        List<Map<String, Object>> groups = webClient.get()
+            .uri(adminUrl + "/users/" + userId + "/groups")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .retrieve()
+            .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
+            .block();
+    
+        List<RoomDTO> rooms = new ArrayList<>();
+        for (Map<String, Object> group : groups) {
+            String path = (String) group.get("path");
+            rooms.add(fetchGroupInfo(path));
+        }
+    
+        return rooms;
+    }
 
 
     private RoomDTO createRoomPath(int year, String semester, String lastName, String roomName, Map<String, List<String>> attributes) {
